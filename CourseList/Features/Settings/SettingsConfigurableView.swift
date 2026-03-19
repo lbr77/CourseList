@@ -387,7 +387,7 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionFooterView().with(footer: authorizationDescription)
+            ConfigurableSectionFooterView()
         )
         stackView.addArrangedSubviewWithMargin(UIView())
     }
@@ -429,22 +429,6 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
         Task { await CourseNotificationService.shared.syncNow(repository: repository) }
     }
 
-    private var authorizationDescription: String {
-        let statusText: String
-        switch authorizationStatus {
-        case .authorized, .provisional, .ephemeral:
-            statusText = "系统通知权限：已授权。"
-        case .denied:
-            statusText = "系统通知权限：已拒绝。应用不会再次弹窗申请，请到系统设置手动开启。"
-        case .notDetermined:
-            statusText = "系统通知权限：尚未决定。应用只会在首次运行时尝试申请一次。"
-        @unknown default:
-            statusText = "系统通知权限状态未知。"
-        }
-
-        let previewText = isNotificationEnabled ? "当前课程提醒已开启，提前 \(leadMinutes) 分钟。" : "当前课程提醒已关闭。"
-        return "\(statusText)\n\(previewText)"
-    }
 
     private func appendSwitchField(icon: String, title: String, description: String?, isOn: Bool, onToggle: @escaping (Bool) -> Void) {
         let view = SettingsSwitchFieldView()

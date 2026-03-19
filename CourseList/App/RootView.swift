@@ -31,7 +31,7 @@ struct RootView: View {
         Group {
             if container.isBootstrapping {
                 bootstrappingView
-            } else {
+            } else if let repository = container.repository {
                 TabView(selection: $selectedTab) {
                     NavigationStack {
                         TimetableHomeView(
@@ -48,27 +48,24 @@ struct RootView: View {
                     }
                     .tag(RootTab.calendar)
 
-                    Group {
-                        if let repository = container.repository {
-                            SettingsConfigurableView(
-                                repository: repository,
-                                currentTimetable: viewModel.currentTimetable,
-                                bootstrapError: container.bootstrapError,
-                                onImportTap: { sheetRoute = .schoolPicker },
-                                onNewTimetableTap: { sheetRoute = .timetableEditor(nil) },
-                                onEditTimetableTap: { timetableId in sheetRoute = .timetableEditor(timetableId) },
-                                onRepositoryChanged: {
-                                    Task { await viewModel.reload() }
-                                }
-                            )
-                            .id(settingsViewIdentity)
+                    SettingsConfigurableView(
+                        repository: repository,
+                        currentTimetable: viewModel.currentTimetable,
+                        bootstrapError: container.bootstrapError,
+                        onImportTap: { sheetRoute = .schoolPicker },
+                        onNewTimetableTap: { sheetRoute = .timetableEditor(nil) },
+                        onEditTimetableTap: { timetableId in sheetRoute = .timetableEditor(timetableId) },
+                        onRepositoryChanged: {
+                            Task { await viewModel.reload() }
                         }
-                    }
+                    )
                     .tabItem {
                         Label("管理", systemImage: "gearshape")
                     }
                     .tag(RootTab.settings)
                 }
+            } else {
+                startupErrorView
             }
         }
         .task(id: container.repository == nil ? "booting" : "ready") {
@@ -133,6 +130,22 @@ struct RootView: View {
         }
     }
 
+    private var startupErrorView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(.orange)
+            Text("数据库初始化失败")
+                .font(.headline)
+            Text(container.bootstrapError ?? "应用无法继续启动，请检查存储权限或重启应用。")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private var bootstrappingView: some View {
         VStack(spacing: 16) {
             ProgressView()
@@ -148,22 +161,5 @@ struct RootView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var settingsViewIdentity: String {
-        let currentTimetableIdentity = if let currentTimetable = viewModel.currentTimetable {
-            [
-                currentTimetable.id,
-                currentTimetable.name,
-                currentTimetable.termName,
-                currentTimetable.startDate,
-                String(currentTimetable.weeksCount),
-                currentTimetable.updatedAt,
-            ].joined(separator: "|")
-        } else {
-            "no-current-timetable"
-        }
-
-        return [currentTimetableIdentity, container.bootstrapError ?? "no-bootstrap-error"].joined(separator: "#")
     }
 }

@@ -7,6 +7,13 @@ protocol TimetableRepositoryProtocol: Sendable {
     func createTimetable(input: CreateTimetableInput) async throws -> String
     func updateTimetable(input: UpdateTimetableInput) async throws
     func deleteTimetable(id: String) async throws
+    func listPeriodTemplates() async throws -> [PeriodTemplate]
+    func getPeriodTemplate(id: String) async throws -> PeriodTemplate?
+    func getDefaultPeriodTemplate() async throws -> PeriodTemplate?
+    func listPeriodTemplateItems(templateId: String) async throws -> [PeriodTemplateItem]
+    func savePeriodTemplate(input: SavePeriodTemplateInput) async throws -> String
+    func deletePeriodTemplate(id: String) async throws
+    func setDefaultPeriodTemplate(id: String) async throws
     func listPeriods(timetableId: String) async throws -> [TimetablePeriod]
     func replacePeriods(timetableId: String, periods: [TimetablePeriodInput]) async throws
     func listCourses(timetableId: String) async throws -> [CourseWithMeetings]

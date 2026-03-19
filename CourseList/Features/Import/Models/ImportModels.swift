@@ -64,7 +64,6 @@ struct ImportedTimetableDraft: Codable, Equatable, Sendable {
     }
 
     var name: String
-    var termName: String
     var startDate: String
     var weeksCount: Int
     var periods: [ImportedPeriodDraft]

@@ -330,14 +330,6 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
         statusStackView.addArrangedSubviewWithMargin(timetableView)
         statusStackView.addArrangedSubview(SeparatorView())
 
-        let termView = ConfigurableInfoView()
-        termView.configure(icon: UIImage(systemName: "graduationcap"))
-        termView.configure(title: "学期")
-        termView.configure(description: "学期名称")
-        termView.configure(value: draft.termName)
-        statusStackView.addArrangedSubviewWithMargin(termView)
-        statusStackView.addArrangedSubview(SeparatorView())
-
         let statsView = ConfigurableInfoView()
         statsView.configure(icon: UIImage(systemName: "square.stack.3d.up"))
         statsView.configure(title: "导入统计")

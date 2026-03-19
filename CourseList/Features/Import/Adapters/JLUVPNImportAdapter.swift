@@ -83,7 +83,7 @@ struct JLUVPNImportAdapter: ImportAdapter {
             throw AppError.importNormalize("JLU 导入返回的数据格式不正确。")
         }
 
-        let termName = normalizeOptionalText((payload["termText"] as? String) ?? "")
+        let timetableName = normalizeOptionalText((payload["termText"] as? String) ?? "")
             ?? normalizeOptionalText(context.title)
             ?? "JLU timetable"
 
@@ -138,8 +138,7 @@ struct JLUVPNImportAdapter: ImportAdapter {
         }
 
         return ImportedTimetableDraft(
-            name: "JLU \(termName)",
-            termName: termName,
+            name: "JLU \(timetableName)",
             startDate: inference.startDate,
             weeksCount: computeWeeksCount(courses: courses, unscheduledCourses: unscheduledCourses),
             periods: periods,

@@ -4,7 +4,6 @@ func validateImportedTimetableDraft(_ draft: ImportedTimetableDraft) -> [String]
     var errors: [String] = []
     let createInput = CreateTimetableInput(
         name: draft.name,
-        termName: draft.termName,
         startDate: draft.startDate,
         weeksCount: draft.weeksCount,
         periods: draft.periods.map { .init(periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime) }

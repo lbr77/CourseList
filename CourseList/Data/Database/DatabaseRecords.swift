@@ -9,6 +9,8 @@ enum DatabaseTable {
     static let courses = "courses"
     static let courseMeetings = "course_meetings"
     static let timetablePeriods = "timetable_periods"
+    static let periodTemplates = "period_templates"
+    static let periodTemplateItems = "period_template_items"
 }
 
 let schemaSQL = """
@@ -61,6 +63,23 @@ CREATE TABLE IF NOT EXISTS timetable_periods (
   FOREIGN KEY (timetable_id) REFERENCES timetables(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS period_templates (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  is_default INTEGER NOT NULL DEFAULT 0 CHECK (is_default IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS period_template_items (
+  id TEXT PRIMARY KEY NOT NULL,
+  template_id TEXT NOT NULL,
+  period_index INTEGER NOT NULL CHECK (period_index >= 1),
+  start_time TEXT NOT NULL,
+  end_time TEXT NOT NULL,
+  FOREIGN KEY (template_id) REFERENCES period_templates(id) ON DELETE CASCADE
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_timetables_single_active
   ON timetables(is_active)
   WHERE is_active = 1;
@@ -73,6 +92,14 @@ CREATE INDEX IF NOT EXISTS idx_course_meetings_course_id
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_timetable_periods_unique_period
   ON timetable_periods(timetable_id, period_index);
+
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_period_templates_single_default
+  ON period_templates(is_default)
+  WHERE is_default = 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_period_template_items_unique_period
+  ON period_template_items(template_id, period_index);
 """
 
 final class TimetableRecord: TableCodable {
@@ -110,6 +137,43 @@ final class TimetablePeriodRecord: TableCodable {
         typealias Root = TimetablePeriodRecord
         case id
         case timetableId = "timetable_id"
+        case periodIndex = "period_index"
+        case startTime = "start_time"
+        case endTime = "end_time"
+        static let objectRelationalMapping = TableBinding(CodingKeys.self)
+    }
+}
+
+
+final class PeriodTemplateRecord: TableCodable {
+    var id = ""
+    var name = ""
+    var isDefault = false
+    var createdAt = ""
+    var updatedAt = ""
+
+    enum CodingKeys: String, CodingTableKey {
+        typealias Root = PeriodTemplateRecord
+        case id
+        case name
+        case isDefault = "is_default"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        static let objectRelationalMapping = TableBinding(CodingKeys.self)
+    }
+}
+
+final class PeriodTemplateItemRecord: TableCodable {
+    var id = ""
+    var templateId = ""
+    var periodIndex = 0
+    var startTime = ""
+    var endTime = ""
+
+    enum CodingKeys: String, CodingTableKey {
+        typealias Root = PeriodTemplateItemRecord
+        case id
+        case templateId = "template_id"
         case periodIndex = "period_index"
         case startTime = "start_time"
         case endTime = "end_time"

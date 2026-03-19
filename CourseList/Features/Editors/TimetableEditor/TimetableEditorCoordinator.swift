@@ -3,20 +3,24 @@ import UIKit
 
 @MainActor
 final class TimetableEditorCoordinator: NSObject {
+    private static let weeksCountRange = Array(1 ... 99)
+
     final class State {
         var timetableId: String?
         var name: String
-        var termName: String
         var startDate: String
-        var weeksCount: String
+        var weeksCount: Int
+        var periodTemplateId: String?
+        var periodTemplateName: String?
         var periods: [TimetablePeriodInput]
 
-        init(timetableId: String?, name: String, termName: String, startDate: String, weeksCount: String, periods: [TimetablePeriodInput]) {
+        init(timetableId: String?, name: String, startDate: String, weeksCount: Int, periodTemplateId: String?, periodTemplateName: String?, periods: [TimetablePeriodInput]) {
             self.timetableId = timetableId
             self.name = name
-            self.termName = termName
             self.startDate = startDate
             self.weeksCount = weeksCount
+            self.periodTemplateId = periodTemplateId
+            self.periodTemplateName = periodTemplateName
             self.periods = periods
         }
     }
@@ -47,13 +51,11 @@ final class TimetableEditorCoordinator: NSObject {
         State(
             timetableId: nil,
             name: "",
-            termName: "",
             startDate: formatDateInput(Date()),
-            weeksCount: "16",
-            periods: [
-                .init(periodIndex: 1, startTime: "08:00", endTime: "08:45"),
-                .init(periodIndex: 2, startTime: "08:55", endTime: "09:40"),
-            ]
+            weeksCount: 16,
+            periodTemplateId: nil,
+            periodTemplateName: nil,
+            periods: defaultTimetablePeriods()
         )
     }
 
@@ -64,15 +66,36 @@ final class TimetableEditorCoordinator: NSObject {
 
             let timetables = (try? await timetablesTask) ?? []
             let loadedPeriods = (try? await periodsTask) ?? []
+            let mappedPeriods = loadedPeriods.map { TimetablePeriodInput(periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime) }
 
             if let timetable = timetables.first(where: { $0.id == timetableId }) {
+                let matchedTemplate = await resolveMatchingTemplate(repository: repository, periods: mappedPeriods)
                 return State(
                     timetableId: timetable.id,
                     name: timetable.name,
-                    termName: timetable.termName,
                     startDate: timetable.startDate,
-                    weeksCount: String(timetable.weeksCount),
-                    periods: loadedPeriods.map { .init(periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime) }
+                    weeksCount: timetable.weeksCount,
+                    periodTemplateId: matchedTemplate?.id,
+                    periodTemplateName: matchedTemplate?.name,
+                    periods: mappedPeriods
+                )
+            }
+        }
+
+        if let defaultTemplate = try? await repository.getDefaultPeriodTemplate() {
+            let templateItems = (try? await repository.listPeriodTemplateItems(templateId: defaultTemplate.id)) ?? []
+            let periods = templateItems.map {
+                TimetablePeriodInput(periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime)
+            }
+            if !periods.isEmpty {
+                return State(
+                    timetableId: nil,
+                    name: "",
+                    startDate: formatDateInput(Date()),
+                    weeksCount: 16,
+                    periodTemplateId: defaultTemplate.id,
+                    periodTemplateName: defaultTemplate.name,
+                    periods: periods
                 )
             }
         }
@@ -107,14 +130,24 @@ final class TimetableEditorCoordinator: NSObject {
         "共 \(state.periods.count) 节"
     }
 
+    var periodTemplateSummary: String {
+        let prefix = state.periodTemplateName ?? "自定义节次"
+        return "\(prefix) · 共 \(state.periods.count) 节"
+    }
+
     var coursesSummary: String {
         canManageCourses ? "管理本课表中的课程" : "保存课表后可管理课程"
     }
 
-    func makePeriodsController() -> UIViewController {
-        PeriodsManagementController(
-            getPeriods: { [weak self] in self?.state.periods ?? [] },
-            setPeriods: { [weak self] in self?.state.periods = $0 },
+    func makePeriodTemplateController() -> UIViewController {
+        PeriodTemplatePickerController(
+            repository: repository,
+            selectedTemplateId: { [weak self] in self?.state.periodTemplateId },
+            applyTemplate: { [weak self] template, periods in
+                self?.state.periodTemplateId = template.id
+                self?.state.periodTemplateName = template.name
+                self?.state.periods = periods
+            },
             onChange: { [weak self] in
                 guard let root = self?.rootController as? TimetableEditorController else { return }
                 root.rebuildContent()
@@ -164,6 +197,22 @@ final class TimetableEditorCoordinator: NSObject {
         view.hostingViewController?.present(picker, animated: true)
     }
 
+    func presentWeeksCountEditor(from view: UIView, onChanged: ((Int) -> Void)? = nil) {
+        let selectedWeeksCount = Self.weeksCountRange.contains(state.weeksCount) ? state.weeksCount : 16
+        let picker = AlertOptionPickerViewController(
+            title: "编辑总周数",
+            message: "上下滑动选择总周数。",
+            options: Self.weeksCountRange.map { "\($0) 周" },
+            selectedIndex: selectedWeeksCount - 1
+        ) { [weak self] selectedIndex in
+            guard let self else { return }
+            let weeksCount = Self.weeksCountRange[selectedIndex]
+            state.weeksCount = weeksCount
+            onChanged?(weeksCount)
+        }
+        view.hostingViewController?.present(picker, animated: true)
+    }
+
     @objc func cancelTapped() {
         onFinished()
     }
@@ -171,14 +220,11 @@ final class TimetableEditorCoordinator: NSObject {
     @objc func saveTapped() {
         Task {
             do {
-                guard let weeksCount = Int(state.weeksCount) else {
-                    throw AppError.validation("总周数必须是数字。")
-                }
                 if let timetableId = state.timetableId {
-                    try await repository.updateTimetable(input: .init(id: timetableId, name: state.name, termName: state.termName, startDate: state.startDate, weeksCount: weeksCount))
+                    try await repository.updateTimetable(input: .init(id: timetableId, name: state.name, startDate: state.startDate, weeksCount: state.weeksCount))
                     try await repository.replacePeriods(timetableId: timetableId, periods: state.periods)
                 } else {
-                    _ = try await repository.createTimetable(input: .init(name: state.name, termName: state.termName, startDate: state.startDate, weeksCount: weeksCount, periods: state.periods))
+                    _ = try await repository.createTimetable(input: .init(name: state.name, startDate: state.startDate, weeksCount: state.weeksCount, periods: state.periods))
                 }
                 onFinished()
             } catch {
@@ -213,6 +259,20 @@ final class TimetableEditorCoordinator: NSObject {
         } catch {
             presentError(error)
         }
+    }
+
+    private static func resolveMatchingTemplate(repository: TimetableRepositoryProtocol, periods: [TimetablePeriodInput]) async -> PeriodTemplate? {
+        let templates = (try? await repository.listPeriodTemplates()) ?? []
+        for template in templates {
+            let items = (try? await repository.listPeriodTemplateItems(templateId: template.id)) ?? []
+            let templatePeriods = items.map {
+                TimetablePeriodInput(periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime)
+            }
+            if templatePeriods == periods {
+                return template
+            }
+        }
+        return nil
     }
 
     func presentError(_ error: Error) {
@@ -264,32 +324,14 @@ private final class TimetableEditorController: ReloadableStackScrollController {
             title: "课表名称",
             description: nil,
             value: coordinator.state.name.isEmpty ? "未设置" : coordinator.state.name,
-            placeholder: "例如：我的课表"
+            placeholder: "大三上"
         ) { [weak coordinator] view in
             coordinator?.presentEditor(
                 for: \TimetableEditorCoordinator.State.name,
                 from: view,
                 title: "编辑课表名称",
                 message: "课表的显示名称。",
-                placeholder: "例如：我的课表"
-            ) { output in
-                view.configure(value: output.isEmpty ? "未设置" : output)
-            }
-        }
-
-        appendEditableField(
-            icon: "graduationcap",
-            title: "学期名称",
-            description: nil,
-            value: coordinator.state.termName.isEmpty ? "未设置" : coordinator.state.termName,
-            placeholder: "例如：2025-2026 春季"
-        ) { [weak coordinator] view in
-            coordinator?.presentEditor(
-                for: \TimetableEditorCoordinator.State.termName,
-                from: view,
-                title: "编辑学期名称",
-                message: "学期的显示名称。",
-                placeholder: "例如：2025-2026 春季"
+                placeholder: "大三上"
             ) { output in
                 view.configure(value: output.isEmpty ? "未设置" : output)
             }
@@ -298,7 +340,7 @@ private final class TimetableEditorController: ReloadableStackScrollController {
         appendEditableField(
             icon: "calendar.badge.clock",
             title: "开学日期",
-            description: "点击选择日期",
+            description: nil,
             value: coordinator.state.startDate,
             placeholder: "2026-03-02"
         ) { [weak coordinator] view in
@@ -316,26 +358,20 @@ private final class TimetableEditorController: ReloadableStackScrollController {
             icon: "number",
             title: "总周数",
             description: nil,
-            value: coordinator.state.weeksCount,
-            placeholder: "16"
+            value: "\(coordinator.state.weeksCount) 周",
+            placeholder: "16 周"
         ) { [weak coordinator] view in
-            coordinator?.presentEditor(
-                for: \TimetableEditorCoordinator.State.weeksCount,
-                from: view,
-                title: "编辑总周数",
-                message: "请输入数字。",
-                placeholder: "16"
-            ) { output in
-                view.configure(value: output.isEmpty ? "未设置" : output)
+            coordinator?.presentWeeksCountEditor(from: view) { weeksCount in
+                view.configure(value: "\(weeksCount) 周")
             }
         }
 
         appendPage(
             icon: "clock.badge",
-            title: "节次设置",
-            description: coordinator.periodsSummary
+            title: "节次模板",
+            description: coordinator.periodTemplateSummary
         ) { [weak coordinator] in
-            coordinator?.makePeriodsController()
+            coordinator?.makePeriodTemplateController()
         }
 
         appendPage(
@@ -387,6 +423,218 @@ private final class TimetableEditorController: ReloadableStackScrollController {
         view.configure(description: description)
         stackView.addArrangedSubviewWithMargin(view)
         stackView.addArrangedSubview(SeparatorView())
+    }
+}
+
+private final class AlertOptionPickerContentController: AlertContentController, UIPickerViewDataSource, UIPickerViewDelegate {
+    let picker = UIPickerView()
+
+    private let options: [String]
+
+    init(
+        title: String = "",
+        message: String = "",
+        options: [String],
+        selectedIndex: Int,
+        setupActions: @escaping (ActionContext) -> Void
+    ) {
+        self.options = options
+        super.init(title: title, message: message, setupActions: setupActions)
+
+        picker.translatesAutoresizingMaskIntoConstraints = false
+        picker.dataSource = self
+        picker.delegate = self
+
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(picker)
+
+        NSLayoutConstraint.activate([
+            picker.topAnchor.constraint(equalTo: container.topAnchor),
+            picker.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            picker.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            picker.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            container.heightAnchor.constraint(equalToConstant: 216),
+        ])
+
+        customViews.append(container)
+        picker.selectRow(max(0, min(selectedIndex, options.count - 1)), inComponent: 0, animated: false)
+    }
+
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        _ = pickerView
+        return 1
+    }
+
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        _ = pickerView
+        _ = component
+        return options.count
+    }
+
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        _ = pickerView
+        _ = component
+        return options[row]
+    }
+}
+
+private final class AlertOptionPickerViewController: AlertViewController {
+    convenience init(
+        title: String,
+        message: String = "",
+        options: [String],
+        selectedIndex: Int,
+        cancelButtonText: String = "取消",
+        doneButtonText: String = "确定",
+        onConfirm: @escaping (Int) -> Void
+    ) {
+        var controller: AlertOptionPickerContentController!
+        controller = AlertOptionPickerContentController(
+            title: title,
+            message: message,
+            options: options,
+            selectedIndex: selectedIndex
+        ) { context in
+            context.addAction(title: cancelButtonText) {
+                context.dispose()
+            }
+            context.addAction(title: doneButtonText, attribute: .accent) {
+                context.dispose {
+                    onConfirm(controller.picker.selectedRow(inComponent: 0))
+                }
+            }
+        }
+
+        self.init(contentViewController: controller)
+    }
+
+    required init(contentViewController: UIViewController) {
+        super.init(contentViewController: contentViewController)
+    }
+}
+
+private final class PeriodTemplatePickerController: ReloadableStackScrollController {
+    private let repository: TimetableRepositoryProtocol
+    private let selectedTemplateId: () -> String?
+    private let applyTemplate: (PeriodTemplate, [TimetablePeriodInput]) -> Void
+    private let onChange: () -> Void
+
+    private var templates: [PeriodTemplate] = []
+    private var templatePeriods: [String: [TimetablePeriodInput]] = [:]
+    private var loadError: Error?
+    private var isLoading = true
+
+    init(
+        repository: TimetableRepositoryProtocol,
+        selectedTemplateId: @escaping () -> String?,
+        applyTemplate: @escaping (PeriodTemplate, [TimetablePeriodInput]) -> Void,
+        onChange: @escaping () -> Void
+    ) {
+        self.repository = repository
+        self.selectedTemplateId = selectedTemplateId
+        self.applyTemplate = applyTemplate
+        self.onChange = onChange
+        super.init(nibName: nil, bundle: nil)
+        title = "节次模板"
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        Task { await reloadData() }
+    }
+
+    override func buildContent() {
+        if isLoading {
+            stackView.addArrangedSubviewWithMargin(
+                ConfigurableSectionFooterView().with(footer: "正在读取节次模板…")
+            )
+            stackView.addArrangedSubviewWithMargin(UIView())
+            return
+        }
+
+        if let loadError {
+            stackView.addArrangedSubviewWithMargin(
+                ConfigurableSectionFooterView().with(footer: loadError.localizedDescription)
+            )
+            stackView.addArrangedSubviewWithMargin(UIView())
+            return
+        }
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionHeaderView().with(header: "模板")
+        ) { $0.bottom /= 2 }
+        stackView.addArrangedSubview(SeparatorView())
+
+        if templates.isEmpty {
+            stackView.addArrangedSubviewWithMargin(
+                ConfigurableSectionFooterView().with(footer: "还没有节次模板，请先去设置页创建模板。")
+            )
+            stackView.addArrangedSubview(SeparatorView())
+        } else {
+            for template in templates {
+                let action = ConfigurableActionView { [weak self] _ in
+                    self?.selectTemplate(template)
+                }
+                let isSelected = template.id == selectedTemplateId()
+                let iconName = isSelected ? "checkmark.circle.fill" : (template.isDefault ? "star.circle" : "clock.badge")
+                let periods = templatePeriods[template.id] ?? []
+                let tags = [
+                    isSelected ? "当前使用" : nil,
+                    template.isDefault ? "默认" : nil,
+                    "共 \(periods.count) 节"
+                ].compactMap { $0 }
+                action.configure(icon: UIImage(systemName: iconName))
+                action.configure(title: template.name)
+                action.configure(description: tags.joined(separator: " · "))
+                stackView.addArrangedSubviewWithMargin(action)
+                stackView.addArrangedSubview(SeparatorView())
+            }
+        }
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionFooterView().with(footer: "选择模板后，会用模板节次覆盖当前课表的节次设置。")
+        )
+        stackView.addArrangedSubviewWithMargin(UIView())
+    }
+
+    private func reloadData() async {
+        isLoading = true
+        loadError = nil
+        rebuildContent()
+
+        do {
+            let loadedTemplates = try await repository.listPeriodTemplates()
+            var loadedPeriods: [String: [TimetablePeriodInput]] = [:]
+            for template in loadedTemplates {
+                let items = try await repository.listPeriodTemplateItems(templateId: template.id)
+                loadedPeriods[template.id] = items.map {
+                    .init(periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime)
+                }
+            }
+            templates = loadedTemplates
+            templatePeriods = loadedPeriods
+        } catch {
+            templates = []
+            templatePeriods = [:]
+            loadError = error
+        }
+
+        isLoading = false
+        rebuildContent()
+    }
+
+    private func selectTemplate(_ template: PeriodTemplate) {
+        let periods = templatePeriods[template.id] ?? []
+        guard !periods.isEmpty else { return }
+        applyTemplate(template, periods)
+        onChange()
+        navigationController?.popViewController(animated: true)
     }
 }
 
@@ -522,6 +770,16 @@ private final class PeriodsManagementController: ReloadableStackScrollController
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: nil,
+            image: UIImage(systemName: "plus"),
+            primaryAction: nil,
+            menu: makeAddMenu()
+        )
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         rebuildContent()
@@ -550,21 +808,94 @@ private final class PeriodsManagementController: ReloadableStackScrollController
             stackView.addArrangedSubview(SeparatorView())
         }
 
-        let addAction = ConfigurableActionView { [weak self] _ in
-            guard let self else { return }
-            var periods = getPeriods()
-            periods.append(.init(periodIndex: periods.count + 1, startTime: "10:00", endTime: "10:45"))
-            setPeriods(periods)
-            onChange()
-            rebuildContent()
+        if getPeriods().isEmpty {
+            stackView.addArrangedSubviewWithMargin(
+                ConfigurableSectionFooterView().with(footer: "点击右上角 + 添加节次。")
+            )
+            stackView.addArrangedSubview(SeparatorView())
         }
-        addAction.configure(icon: UIImage(systemName: "plus.circle"))
-        addAction.configure(title: "添加节次")
-        addAction.configure(description: "新增一个节次。")
-        stackView.addArrangedSubviewWithMargin(addAction)
-        stackView.addArrangedSubview(SeparatorView())
 
         stackView.addArrangedSubviewWithMargin(UIView())
+    }
+
+    private func makeAddMenu() -> UIMenu {
+        UIMenu(children: [
+            UIAction(
+                title: "添加单节",
+                image: UIImage(systemName: "plus.circle")
+            ) { [weak self] _ in
+                self?.addSinglePeriod()
+            },
+            UIAction(
+                title: "批量添加",
+                image: UIImage(systemName: "square.stack.3d.up.badge.plus")
+            ) { [weak self] _ in
+                self?.presentBatchAddPrompt()
+            },
+        ])
+    }
+
+    private func addSinglePeriod() {
+        let newPeriod = nextPeriod(after: getPeriods())
+        var periods = getPeriods()
+        periods.append(newPeriod)
+        setPeriods(periods)
+        onChange()
+        rebuildContent()
+
+        navigationController?.pushViewController(
+            PeriodDetailController(
+                periodIndex: newPeriod.periodIndex,
+                getPeriods: getPeriods,
+                setPeriods: setPeriods,
+                onChange: onChange
+            ),
+            animated: true
+        )
+    }
+
+    private func presentBatchAddPrompt() {
+        let input = AlertInputViewController(
+            title: "批量添加节次",
+            message: "请输入要连续添加的节次数量。",
+            placeholder: "",
+            text: "2",
+            cancelButtonText: "取消",
+            doneButtonText: "确定"
+        ) { [weak self] output in
+            self?.handleBatchAdd(output: output)
+        }
+        present(input, animated: true)
+    }
+
+    private func handleBatchAdd(output: String) {
+        let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let count = Int(trimmed), count > 0 else {
+            presentMessage(title: "数量无效", message: "请输入大于 0 的整数。")
+            return
+        }
+
+        var periods = getPeriods()
+        for _ in 0 ..< count {
+            periods.append(nextPeriod(after: periods))
+        }
+
+        setPeriods(periods)
+        onChange()
+        rebuildContent()
+    }
+
+    private func nextPeriod(after periods: [TimetablePeriodInput]) -> TimetablePeriodInput {
+        makeNextTimetablePeriodInput(after: periods)
+    }
+
+    private func presentMessage(title: String, message: String) {
+        let alert = AlertViewController(title: title, message: message) { context in
+            context.addAction(title: "确定", attribute: .accent) {
+                context.dispose()
+            }
+        }
+        present(alert, animated: true)
     }
 }
 

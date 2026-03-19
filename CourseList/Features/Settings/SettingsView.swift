@@ -12,7 +12,6 @@ struct SettingsView: View {
             Section("当前课表") {
                 if let activeTimetable {
                     LabeledContent("名称", value: activeTimetable.name)
-                    LabeledContent("学期", value: activeTimetable.termName)
                     LabeledContent("开学日期", value: activeTimetable.startDate)
                     LabeledContent("总周数", value: "\(activeTimetable.weeksCount)")
                     Button("编辑当前课表", action: onManageTimetableTap)

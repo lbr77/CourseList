@@ -915,10 +915,16 @@ final class AlertDatePickerContentController: AlertContentController {
     ) {
         super.init(title: title, message: message, setupActions: setupActions)
 
+        let preferredStyle: UIDatePickerStyle = if mode == .date {
+            .inline
+        } else {
+            .wheels
+        }
+
         picker.translatesAutoresizingMaskIntoConstraints = false
         picker.datePickerMode = mode
         picker.date = selectedDate
-        picker.preferredDatePickerStyle = .wheels
+        picker.preferredDatePickerStyle = preferredStyle
 
         if mode == .time {
             picker.locale = Locale(identifier: "zh_CN")
@@ -928,13 +934,18 @@ final class AlertDatePickerContentController: AlertContentController {
         container.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(picker)
 
-        NSLayoutConstraint.activate([
+        var constraints = [
             picker.topAnchor.constraint(equalTo: container.topAnchor),
             picker.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             picker.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             picker.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            container.heightAnchor.constraint(equalToConstant: 216),
-        ])
+        ]
+
+        if preferredStyle == .wheels {
+            constraints.append(container.heightAnchor.constraint(equalToConstant: 216))
+        }
+
+        NSLayoutConstraint.activate(constraints)
 
         customViews.append(container)
     }

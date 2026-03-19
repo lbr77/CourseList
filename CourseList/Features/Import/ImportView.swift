@@ -113,7 +113,6 @@ struct ImportView: View {
                 Text("导入预览")
                     .font(.headline)
                 Text("课表：\(draft.name)")
-                Text("学期：\(draft.termName)")
                 Text("开学日期：\(draft.startDate) · 周数：\(draft.weeksCount)")
                 Text("节次：\(draft.periods.count) · 课程：\(draft.courses.count)")
                     .font(.subheadline)

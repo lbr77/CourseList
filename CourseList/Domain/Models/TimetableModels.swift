@@ -17,7 +17,6 @@ enum WeekType: String, Codable, CaseIterable, Sendable {
 struct Timetable: Identifiable, Codable, Equatable, Sendable {
     let id: String
     var name: String
-    var termName: String
     var startDate: String
     var weeksCount: Int
     var isActive: Bool
@@ -28,6 +27,22 @@ struct Timetable: Identifiable, Codable, Equatable, Sendable {
 struct TimetablePeriod: Identifiable, Codable, Equatable, Sendable {
     let id: String
     let timetableId: String
+    let periodIndex: Int
+    let startTime: String
+    let endTime: String
+}
+
+struct PeriodTemplate: Identifiable, Codable, Equatable, Sendable {
+    let id: String
+    var name: String
+    var isDefault: Bool
+    let createdAt: String
+    var updatedAt: String
+}
+
+struct PeriodTemplateItem: Identifiable, Codable, Equatable, Sendable {
+    let id: String
+    let templateId: String
     let periodIndex: Int
     let startTime: String
     let endTime: String

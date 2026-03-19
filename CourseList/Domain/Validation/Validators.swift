@@ -20,9 +20,13 @@ func validateTimetablePeriods(_ periods: [TimetablePeriodInput]) -> String? {
     return nil
 }
 
+func validateSavePeriodTemplateInput(_ input: SavePeriodTemplateInput) -> String? {
+    if input.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "模板名称不能为空。" }
+    return validateTimetablePeriods(input.periods)
+}
+
 func validateCreateTimetableInput(_ input: CreateTimetableInput) -> String? {
     if input.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "课表名称不能为空。" }
-    if input.termName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "学期名称不能为空。" }
     if parseDateInput(input.startDate) == nil { return "开学日期必须使用 YYYY-MM-DD 格式。" }
     if input.weeksCount < 1 { return "周数至少为 1。" }
     return validateTimetablePeriods(input.periods)
@@ -30,7 +34,6 @@ func validateCreateTimetableInput(_ input: CreateTimetableInput) -> String? {
 
 func validateUpdateTimetableInput(_ input: UpdateTimetableInput) -> String? {
     if input.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "课表名称不能为空。" }
-    if input.termName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "学期名称不能为空。" }
     if parseDateInput(input.startDate) == nil { return "开学日期必须使用 YYYY-MM-DD 格式。" }
     if input.weeksCount < 1 { return "周数至少为 1。" }
     return nil

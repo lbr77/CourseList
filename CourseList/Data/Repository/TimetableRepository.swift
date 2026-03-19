@@ -46,9 +46,10 @@ final class TimetableRepository: TimetableRepositoryProtocol {
         try await manager.write { database in
             try database.run(transaction: { _ in
                 let record = TimetableRecord()
+                let normalizedName = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 record.id = timetableId
-                record.name = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
-                record.termName = input.termName.trimmingCharacters(in: .whitespacesAndNewlines)
+                record.name = normalizedName
+                record.termName = normalizedName
                 record.startDate = input.startDate
                 record.weeksCount = input.weeksCount
                 record.isActive = false
@@ -65,6 +66,7 @@ final class TimetableRepository: TimetableRepositoryProtocol {
     func updateTimetable(input: UpdateTimetableInput) async throws {
         if let error = validateUpdateTimetableInput(input) { throw AppError.validation(error) }
         try await manager.write { database in
+            let normalizedName = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
             try database.update(
                 table: DatabaseTable.timetables,
                 on: TimetableRecord.Properties.name,
@@ -72,8 +74,8 @@ final class TimetableRepository: TimetableRepositoryProtocol {
                 TimetableRecord.Properties.startDate,
                 TimetableRecord.Properties.weeksCount,
                 TimetableRecord.Properties.updatedAt,
-                with: input.name.trimmingCharacters(in: .whitespacesAndNewlines),
-                input.termName.trimmingCharacters(in: .whitespacesAndNewlines),
+                with: normalizedName,
+                normalizedName,
                 input.startDate,
                 input.weeksCount,
                 nowISO8601String(),
@@ -92,6 +94,120 @@ final class TimetableRepository: TimetableRepositoryProtocol {
                 try database.delete(fromTable: DatabaseTable.courses, where: CourseRecord.Properties.timetableId == id)
                 try database.delete(fromTable: DatabaseTable.timetablePeriods, where: TimetablePeriodRecord.Properties.timetableId == id)
                 try database.delete(fromTable: DatabaseTable.timetables, where: TimetableRecord.Properties.id == id)
+            })
+        }
+    }
+
+    func listPeriodTemplates() async throws -> [PeriodTemplate] {
+        try await manager.read { database in
+            let records: [PeriodTemplateRecord] = try database.getObjects(fromTable: DatabaseTable.periodTemplates)
+            return records
+                .map(Self.mapPeriodTemplate)
+                .sorted(by: Self.sortPeriodTemplates)
+        }
+    }
+
+    func getPeriodTemplate(id: String) async throws -> PeriodTemplate? {
+        try await manager.read { database in
+            let record = try database.getObject(fromTable: DatabaseTable.periodTemplates, where: PeriodTemplateRecord.Properties.id == id) as PeriodTemplateRecord?
+            return record.map(Self.mapPeriodTemplate)
+        }
+    }
+
+    func getDefaultPeriodTemplate() async throws -> PeriodTemplate? {
+        try await manager.read { database in
+            let record = try database.getObject(fromTable: DatabaseTable.periodTemplates, where: PeriodTemplateRecord.Properties.isDefault == true) as PeriodTemplateRecord?
+            return record.map(Self.mapPeriodTemplate)
+        }
+    }
+
+    func listPeriodTemplateItems(templateId: String) async throws -> [PeriodTemplateItem] {
+        try await manager.read { database in
+            let records: [PeriodTemplateItemRecord] = try database.getObjects(
+                fromTable: DatabaseTable.periodTemplateItems,
+                where: PeriodTemplateItemRecord.Properties.templateId == templateId
+            )
+            return records.sorted { $0.periodIndex < $1.periodIndex }.map(Self.mapPeriodTemplateItem)
+        }
+    }
+
+    func savePeriodTemplate(input: SavePeriodTemplateInput) async throws -> String {
+        if let error = validateSavePeriodTemplateInput(input) { throw AppError.validation(error) }
+        let templateId = input.id ?? createIdentifier(prefix: "period_template")
+        let timestamp = nowISO8601String()
+        let normalizedName = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        try await manager.write { database in
+            try database.run(transaction: { _ in
+                let existing = try database.getObject(fromTable: DatabaseTable.periodTemplates, where: PeriodTemplateRecord.Properties.id == templateId) as PeriodTemplateRecord?
+
+                if let existing {
+                    try database.update(
+                        table: DatabaseTable.periodTemplates,
+                        on: PeriodTemplateRecord.Properties.name,
+                        PeriodTemplateRecord.Properties.updatedAt,
+                        with: normalizedName,
+                        timestamp,
+                        where: PeriodTemplateRecord.Properties.id == existing.id
+                    )
+                    try database.delete(fromTable: DatabaseTable.periodTemplateItems, where: PeriodTemplateItemRecord.Properties.templateId == existing.id)
+                    try Self.insertPeriodTemplateItems(input.periods, templateId: existing.id, database: database)
+                    return
+                }
+
+                let existingDefault = try database.getObject(fromTable: DatabaseTable.periodTemplates, where: PeriodTemplateRecord.Properties.isDefault == true) as PeriodTemplateRecord?
+                let record = PeriodTemplateRecord()
+                record.id = templateId
+                record.name = normalizedName
+                record.isDefault = existingDefault == nil
+                record.createdAt = timestamp
+                record.updatedAt = timestamp
+                try database.insert(record, intoTable: DatabaseTable.periodTemplates)
+                try Self.insertPeriodTemplateItems(input.periods, templateId: templateId, database: database)
+            })
+        }
+
+        return templateId
+    }
+
+    func deletePeriodTemplate(id: String) async throws {
+        try await manager.write { database in
+            try database.run(transaction: { _ in
+                let record = try database.getObject(fromTable: DatabaseTable.periodTemplates, where: PeriodTemplateRecord.Properties.id == id) as PeriodTemplateRecord?
+                let wasDefault = record?.isDefault == true
+
+                try database.delete(fromTable: DatabaseTable.periodTemplateItems, where: PeriodTemplateItemRecord.Properties.templateId == id)
+                try database.delete(fromTable: DatabaseTable.periodTemplates, where: PeriodTemplateRecord.Properties.id == id)
+
+                if wasDefault {
+                    let remaining: [PeriodTemplateRecord] = try database.getObjects(fromTable: DatabaseTable.periodTemplates)
+                    if let fallback = remaining.sorted(by: Self.sortPeriodTemplateRecords).first {
+                        try database.update(
+                            table: DatabaseTable.periodTemplates,
+                            on: PeriodTemplateRecord.Properties.isDefault,
+                            PeriodTemplateRecord.Properties.updatedAt,
+                            with: true,
+                            nowISO8601String(),
+                            where: PeriodTemplateRecord.Properties.id == fallback.id
+                        )
+                    }
+                }
+            })
+        }
+    }
+
+    func setDefaultPeriodTemplate(id: String) async throws {
+        try await manager.write { database in
+            try database.run(transaction: { _ in
+                try database.update(table: DatabaseTable.periodTemplates, on: PeriodTemplateRecord.Properties.isDefault, with: false)
+                try database.update(
+                    table: DatabaseTable.periodTemplates,
+                    on: PeriodTemplateRecord.Properties.isDefault,
+                    PeriodTemplateRecord.Properties.updatedAt,
+                    with: true,
+                    nowISO8601String(),
+                    where: PeriodTemplateRecord.Properties.id == id
+                )
             })
         }
     }
@@ -217,9 +333,10 @@ final class TimetableRepository: TimetableRepositoryProtocol {
         try await manager.write { database in
             try database.run(transaction: { _ in
                 let timetable = TimetableRecord()
+                let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 timetable.id = timetableId
-                timetable.name = draft.name
-                timetable.termName = draft.termName
+                timetable.name = normalizedName
+                timetable.termName = normalizedName
                 timetable.startDate = draft.startDate
                 timetable.weeksCount = draft.weeksCount
                 timetable.isActive = false
@@ -263,16 +380,45 @@ private extension TimetableRepository {
         shouldDisplayTimetableBefore(mapTimetable(lhs), mapTimetable(rhs))
     }
 
+    static func sortPeriodTemplates(_ lhs: PeriodTemplate, _ rhs: PeriodTemplate) -> Bool {
+        if lhs.isDefault != rhs.isDefault { return lhs.isDefault && !rhs.isDefault }
+        if lhs.updatedAt != rhs.updatedAt { return lhs.updatedAt > rhs.updatedAt }
+        return lhs.name.localizedCompare(rhs.name) == .orderedAscending
+    }
+
+    static func sortPeriodTemplateRecords(_ lhs: PeriodTemplateRecord, _ rhs: PeriodTemplateRecord) -> Bool {
+        sortPeriodTemplates(mapPeriodTemplate(lhs), mapPeriodTemplate(rhs))
+    }
+
     static func mapTimetable(_ record: TimetableRecord) -> Timetable {
         Timetable(
             id: record.id,
             name: record.name,
-            termName: record.termName,
             startDate: record.startDate,
             weeksCount: record.weeksCount,
             isActive: record.isActive,
             createdAt: record.createdAt,
             updatedAt: record.updatedAt
+        )
+    }
+
+    static func mapPeriodTemplate(_ record: PeriodTemplateRecord) -> PeriodTemplate {
+        PeriodTemplate(
+            id: record.id,
+            name: record.name,
+            isDefault: record.isDefault,
+            createdAt: record.createdAt,
+            updatedAt: record.updatedAt
+        )
+    }
+
+    static func mapPeriodTemplateItem(_ record: PeriodTemplateItemRecord) -> PeriodTemplateItem {
+        PeriodTemplateItem(
+            id: record.id,
+            templateId: record.templateId,
+            periodIndex: record.periodIndex,
+            startTime: record.startTime,
+            endTime: record.endTime
         )
     }
 
@@ -336,6 +482,21 @@ private extension TimetableRepository {
         }
         if !records.isEmpty {
             try database.insert(records, intoTable: DatabaseTable.timetablePeriods)
+        }
+    }
+
+    static func insertPeriodTemplateItems(_ periods: [TimetablePeriodInput], templateId: String, database: Database) throws {
+        let records = periods.map { period -> PeriodTemplateItemRecord in
+            let record = PeriodTemplateItemRecord()
+            record.id = createIdentifier(prefix: "period_template_item")
+            record.templateId = templateId
+            record.periodIndex = period.periodIndex
+            record.startTime = period.startTime
+            record.endTime = period.endTime
+            return record
+        }
+        if !records.isEmpty {
+            try database.insert(records, intoTable: DatabaseTable.periodTemplateItems)
         }
     }
 

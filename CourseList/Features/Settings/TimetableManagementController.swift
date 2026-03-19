@@ -16,6 +16,7 @@ final class TimetableManagementController: UIViewController {
     private var timetables: [Timetable] = []
     private var loadError: Error?
     private var isLoading = true
+    private var hasLoadedOnce = false
     private var contentController: UIViewController?
 
     init(
@@ -48,6 +49,12 @@ final class TimetableManagementController: UIViewController {
         view.backgroundColor = .systemBackground
         navigationItem.title = "课表管理"
         navigationItem.largeTitleDisplayMode = .never
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: nil,
+            image: UIImage(systemName: "plus"),
+            primaryAction: nil,
+            menu: makeAddMenu()
+        )
 
         NotificationCenter.default.addObserver(
             self,
@@ -57,23 +64,20 @@ final class TimetableManagementController: UIViewController {
         )
 
         render()
-        Task { await reloadData() }
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        Task { await reloadData() }
+        Task { await reloadData(showLoading: true) }
     }
 
     @objc private func repositoryDidChange() {
         onRepositoryChanged()
-        Task { await reloadData() }
+        Task { await reloadData(showLoading: false) }
     }
 
-    private func reloadData() async {
-        isLoading = true
-        loadError = nil
-        render()
+    private func reloadData(showLoading: Bool) async {
+        if showLoading || !hasLoadedOnce {
+            isLoading = true
+            loadError = nil
+            render()
+        }
 
         do {
             timetables = try await repository.listTimetables().sorted { shouldDisplayTimetableBefore($0, $1) }
@@ -82,6 +86,7 @@ final class TimetableManagementController: UIViewController {
             loadError = error
         }
 
+        hasLoadedOnce = true
         isLoading = false
         render()
     }
@@ -113,47 +118,16 @@ final class TimetableManagementController: UIViewController {
     }
 
     private func makeManifest() -> ConfigurableManifest {
-        var objects: [ConfigurableObject] = [
-            ConfigurableObject(
-                icon: "square.and.arrow.down",
-                title: "学校导入",
-                explain: "从学校系统导入课表",
-                ephemeralAnnotation: .action { _ in
-                    self.onImportTap()
-                }
-            ),
-            ConfigurableObject(
-                icon: "square.and.pencil",
-                title: "新建课表",
-                explain: "手动创建一个新的学期课表",
-                ephemeralAnnotation: .action { _ in
-                    self.onCreateTimetable()
-                }
-            ),
-        ]
+        var objects: [ConfigurableObject] = []
 
         if isLoading {
             objects.append(loadingObject(text: "正在读取课表…"))
         } else if let loadError {
             objects.append(errorObject(error: loadError))
         } else {
-            if let currentTimetable = resolveCurrentTimetable(timetables: timetables) {
-                objects.append(
-                    ConfigurableObject(
-                        icon: "calendar.badge.clock",
-                        title: "当前学期课表",
-                        explain: currentTimetable.name,
-                        ephemeralAnnotation: .action { _ in
-                            self.onEditTimetable(currentTimetable.id)
-                        }
-                    )
-                )
-            } else {
-                // objects.append(infoObject(text: "今天没有生效中的课表"))
-            }
 
             if timetables.isEmpty {
-                objects.append(infoObject(text: "还没有课表，先创建一个或从学校导入。"))
+                objects.append(infoObject(text: "还没有课表，点右上角 + 来新建或导入。"))
             } else {
                 objects.append(contentsOf: timetables.map(makeTimetableObject))
             }
@@ -164,6 +138,23 @@ final class TimetableManagementController: UIViewController {
             list: objects,
             footer: footerText
         )
+    }
+
+    private func makeAddMenu() -> UIMenu {
+        UIMenu(children: [
+            UIAction(
+                title: "学校导入",
+                image: UIImage(systemName: "square.and.arrow.down")
+            ) { [weak self] _ in
+                self?.onImportTap()
+            },
+            UIAction(
+                title: "新建课表",
+                image: UIImage(systemName: "square.and.pencil")
+            ) { [weak self] _ in
+                self?.onCreateTimetable()
+            },
+        ])
     }
 
     private func makeTimetableObject(_ timetable: Timetable) -> ConfigurableObject {
@@ -220,7 +211,7 @@ final class TimetableManagementController: UIViewController {
             title: "读取失败",
             explain: error.localizedDescription,
             ephemeralAnnotation: .action { _ in
-                Task { await self.reloadData() }
+                Task { await self.reloadData(showLoading: true) }
             }
         )
     }
@@ -233,8 +224,8 @@ final class TimetableManagementController: UIViewController {
             return "读取课表失败，点按上方条目可重试。"
         }
         if timetables.isEmpty {
-            return "没有课表，先添加一个吧~"
+            return "没有课表，点右上角 + 添加一个吧~"
         }
-        return "共 \(timetables.count) 个课表，首页会按日期自动显示当前学期。"
+        return "共 \(timetables.count) 个课表，首页会按日期自动显示当前课表。"
     }
 }

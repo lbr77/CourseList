@@ -93,16 +93,6 @@ final class SchoolPickerController: StackScrollController, UISearchResultsUpdati
             stackView.addArrangedSubview(SeparatorView())
         }
 
-        let footerLabel = UILabel()
-        footerLabel.numberOfLines = 0
-        footerLabel.textAlignment = .center
-        footerLabel.font = .preferredFont(forTextStyle: .footnote)
-        footerLabel.textColor = .secondaryLabel
-        footerLabel.text = "可选择学校导入，或手动创建课表。"
-        stackView.addArrangedSubviewWithMargin(footerLabel) { margin in
-            margin.left = 0
-            margin.right = 0
-        }
     }
 
     private func schoolObjects() -> [ConfigurableObject] {
@@ -132,17 +122,6 @@ final class SchoolPickerController: StackScrollController, UISearchResultsUpdati
                 )
             })
         }
-
-        objects.append(
-            ConfigurableObject(
-                icon: "square.and.pencil",
-                title: "手动创建课表",
-                explain: "不通过学校系统，直接新建",
-                ephemeralAnnotation: .action { _ in
-                    self.onCreateTimetable()
-                }
-            )
-        )
 
         return objects
     }

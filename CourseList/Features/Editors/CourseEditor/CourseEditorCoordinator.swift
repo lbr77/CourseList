@@ -146,11 +146,12 @@ final class CourseEditorCoordinator: NSObject {
         ConfigurableManifest(
             title: state.courseId == nil ? "新建课程" : "编辑课程",
             list: [
-                ConfigurableObject(icon: "book", title: "课程名称", key: "course.name", defaultValue: state.name, annotation: TextInputAnnotation(placeholder: "例如：高等数学"), storage: storage),
-                ConfigurableObject(icon: "person", title: "教师", key: "course.teacher", defaultValue: state.teacher, annotation: TextInputAnnotation(placeholder: "任课教师"), storage: storage),
-                ConfigurableObject(icon: "mappin.and.ellipse", title: "地点", key: "course.location", defaultValue: state.location, annotation: TextInputAnnotation(placeholder: "上课地点"), storage: storage),
-                ConfigurableObject(icon: "paintpalette", title: "颜色", explain: "可留空，例如 #5B8FF9", key: "course.color", defaultValue: state.color, annotation: TextInputAnnotation(placeholder: "#5B8FF9"), storage: storage),
-                ConfigurableObject(icon: "note.text", title: "备注", key: "course.note", defaultValue: state.note, annotation: TextInputAnnotation(placeholder: "可选备注"), storage: storage),
+                ConfigurableObject(icon: "book", title: "课程名称", key: "course.name", defaultValue: state.name, annotation: TextInputAnnotation(placeholder: "高等数学"), storage: storage),
+                ConfigurableObject(icon: "person", title: "教师", key: "course.teacher", defaultValue: state.teacher, annotation: TextInputAnnotation(placeholder: "李华"), storage: storage),
+                ConfigurableObject(icon: "mappin.and.ellipse", title: "地点", key: "course.location", defaultValue: state.location, annotation: TextInputAnnotation(placeholder: "逸夫教学楼"), storage: storage),
+                // TODO: 换成color picker
+                ConfigurableObject(icon: "paintpalette", title: "颜色", explain: "", key: "course.color", defaultValue: state.color, annotation: TextInputAnnotation(placeholder: "#5B8FF9"), storage: storage),
+                ConfigurableObject(icon: "note.text", title: "备注", key: "course.note", defaultValue: state.note, annotation: TextInputAnnotation(placeholder: "老师要手写签到，快去"), storage: storage),
                 ConfigurableObject(icon: "clock", title: "上课时间", explain: "共 \(state.meetings.count) 条", ephemeralAnnotation: PageAnnotation(viewController: makeMeetingsController)),
             ],
             footer: "保存时会进行时间冲突检测。"

@@ -6,9 +6,14 @@ struct TimetablePeriodInput: Codable, Equatable, Sendable {
     var endTime: String
 }
 
+struct SavePeriodTemplateInput: Codable, Equatable, Sendable {
+    var id: String?
+    var name: String
+    var periods: [TimetablePeriodInput]
+}
+
 struct CreateTimetableInput: Codable, Equatable, Sendable {
     var name: String
-    var termName: String
     var startDate: String
     var weeksCount: Int
     var periods: [TimetablePeriodInput]
@@ -17,7 +22,6 @@ struct CreateTimetableInput: Codable, Equatable, Sendable {
 struct UpdateTimetableInput: Codable, Equatable, Sendable {
     var id: String
     var name: String
-    var termName: String
     var startDate: String
     var weeksCount: Int
 }

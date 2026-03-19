@@ -34,6 +34,45 @@ func formatTimeInput(_ value: Date) -> String {
     return String(format: "%02d:%02d", hour, minute)
 }
 
+func defaultTimetablePeriods() -> [TimetablePeriodInput] {
+    [
+        .init(periodIndex: 1, startTime: "08:00", endTime: "08:45"),
+        .init(periodIndex: 2, startTime: "08:55", endTime: "09:40"),
+    ]
+}
+
+func makeNextTimetablePeriodInput(after periods: [TimetablePeriodInput]) -> TimetablePeriodInput {
+    let nextIndex = periods.count + 1
+
+    guard let lastPeriod = periods.last,
+          let lastStart = parseTimeInput(lastPeriod.startTime),
+          let lastEnd = parseTimeInput(lastPeriod.endTime)
+    else {
+        return defaultTimetablePeriods().first ?? .init(periodIndex: nextIndex, startTime: "08:00", endTime: "08:45")
+    }
+
+    let defaultDuration: TimeInterval = 45 * 60
+    let defaultBreak: TimeInterval = 10 * 60
+    let measuredDuration = lastEnd.timeIntervalSince(lastStart)
+    let lastDuration = measuredDuration > 0 ? measuredDuration : defaultDuration
+
+    let breakDuration: TimeInterval
+    if periods.count >= 2,
+       let previousEnd = periods.dropLast().last.flatMap({ parseTimeInput($0.endTime) }) {
+        breakDuration = max(0, lastStart.timeIntervalSince(previousEnd))
+    } else {
+        breakDuration = defaultBreak
+    }
+
+    let newStart = lastEnd.addingTimeInterval(breakDuration)
+    let newEnd = newStart.addingTimeInterval(lastDuration)
+    return .init(
+        periodIndex: nextIndex,
+        startTime: formatTimeInput(newStart),
+        endTime: formatTimeInput(newEnd)
+    )
+}
+
 func parseDateInput(_ value: String) -> Date? {
     guard value.range(of: #"^\d{4}-\d{2}-\d{2}$"#, options: .regularExpression) != nil else {
         return nil
@@ -220,7 +259,7 @@ func buildTimetableSummary(_ timetable: Timetable, on date: Date = Date()) -> St
     case .past:
         status = "已结束"
     case .unknown:
-        status = timetable.termName.isEmpty ? "日期异常" : timetable.termName
+        status = "日期异常"
     }
 
     return "\(status) · \(timetable.startDate) 开学 · \(timetable.weeksCount) 周"

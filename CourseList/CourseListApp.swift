@@ -1,17 +1,13 @@
-//
-//  CourseListApp.swift
-//  CourseList
-//
-//  Created by LiBr on 18/3/2026.
-//
-
 import SwiftUI
 
 @main
 struct CourseListApp: App {
+    @StateObject private var container = AppContainer()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environmentObject(container)
         }
     }
 }

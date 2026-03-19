@@ -1,0 +1,169 @@
+import SwiftUI
+
+enum RootTab: Hashable {
+    case calendar
+    case settings
+}
+
+enum SheetRoute: Identifiable {
+    case schoolPicker
+    case importFlow(TimetableImportSchool)
+    case timetableEditor(String?)
+    case courseEditor(courseId: String?, timetableId: String?)
+
+    var id: String {
+        switch self {
+        case .schoolPicker: return "school-picker"
+        case .importFlow(let school): return "import-\(school.id)"
+        case .timetableEditor(let id): return "timetable-editor-\(id ?? "new")"
+        case .courseEditor(let courseId, let timetableId): return "course-editor-\(courseId ?? timetableId ?? "new")"
+        }
+    }
+}
+
+struct RootView: View {
+    @EnvironmentObject private var container: AppContainer
+    @StateObject private var viewModel = TimetableHomeViewModel()
+    @State private var sheetRoute: SheetRoute?
+    @State private var selectedTab: RootTab = .calendar
+
+    var body: some View {
+        Group {
+            if container.isBootstrapping {
+                bootstrappingView
+            } else {
+                TabView(selection: $selectedTab) {
+                    NavigationStack {
+                        TimetableHomeView(
+                            viewModel: viewModel,
+                            onImportTap: { sheetRoute = .schoolPicker },
+                            onNewTimetableTap: { sheetRoute = .timetableEditor(nil) },
+                            onManageTimetableTap: { sheetRoute = .timetableEditor(viewModel.currentTimetable?.id) },
+                            onNewCourseTap: { sheetRoute = .courseEditor(courseId: nil, timetableId: viewModel.currentTimetable?.id) },
+                            onEditCourseTap: { course in sheetRoute = .courseEditor(courseId: course.id, timetableId: course.timetableId) }
+                        )
+                    }
+                    .tabItem {
+                        Label("课程", systemImage: "calendar")
+                    }
+                    .tag(RootTab.calendar)
+
+                    Group {
+                        if let repository = container.repository {
+                            SettingsConfigurableView(
+                                repository: repository,
+                                currentTimetable: viewModel.currentTimetable,
+                                bootstrapError: container.bootstrapError,
+                                onImportTap: { sheetRoute = .schoolPicker },
+                                onNewTimetableTap: { sheetRoute = .timetableEditor(nil) },
+                                onEditTimetableTap: { timetableId in sheetRoute = .timetableEditor(timetableId) },
+                                onRepositoryChanged: {
+                                    Task { await viewModel.reload() }
+                                }
+                            )
+                            .id(settingsViewIdentity)
+                        }
+                    }
+                    .tabItem {
+                        Label("管理", systemImage: "gearshape")
+                    }
+                    .tag(RootTab.settings)
+                }
+            }
+        }
+        .task(id: container.repository == nil ? "booting" : "ready") {
+            guard let repository = container.repository else { return }
+            viewModel.bind(repository: repository)
+            await viewModel.reload()
+        }
+        .sheet(item: $sheetRoute, onDismiss: {
+            NotificationCenter.default.post(name: .timetableRepositoryDidChange, object: nil)
+            Task { await viewModel.reload() }
+        }) { route in
+            if let repository = container.repository {
+                switch route {
+                case .schoolPicker:
+                    ConfigurableSheetContainer(
+                        rootController: SchoolPickerController.makeController(
+                            onSelect: { school in
+                                sheetRoute = .importFlow(school)
+                            },
+                            onCreateTimetable: {
+                                sheetRoute = .timetableEditor(nil)
+                            },
+                            onCancel: {
+                                sheetRoute = nil
+                            }
+                        )
+                    )
+                    .ignoresSafeArea()
+                case .importFlow(let school):
+                    ConfigurableSheetContainer(
+                        rootController: UINavigationController(
+                            rootViewController: ImportContainerController(
+                                viewModel: ImportViewModel(repository: repository, school: school),
+                                onImported: {
+                                    sheetRoute = nil
+                                }
+                            )
+                        )
+                    )
+                    .ignoresSafeArea()
+                case .timetableEditor(let timetableId):
+                    ConfigurableSheetContainer(
+                        rootController: TimetableEditorCoordinator.makeController(
+                            repository: repository,
+                            timetableId: timetableId,
+                            onFinished: { sheetRoute = nil }
+                        )
+                    )
+                    .ignoresSafeArea()
+                case .courseEditor(let courseId, let timetableId):
+                    ConfigurableSheetContainer(
+                        rootController: CourseEditorCoordinator.makeController(
+                            repository: repository,
+                            courseId: courseId,
+                            timetableId: timetableId,
+                            onFinished: { sheetRoute = nil }
+                        )
+                    )
+                    .ignoresSafeArea()
+                }
+            }
+        }
+    }
+
+    private var bootstrappingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .progressViewStyle(.circular)
+            Text("正在初始化数据库…")
+                .font(.headline)
+            if let error = container.bootstrapError {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var settingsViewIdentity: String {
+        let currentTimetableIdentity = if let currentTimetable = viewModel.currentTimetable {
+            [
+                currentTimetable.id,
+                currentTimetable.name,
+                currentTimetable.termName,
+                currentTimetable.startDate,
+                String(currentTimetable.weeksCount),
+                currentTimetable.updatedAt,
+            ].joined(separator: "|")
+        } else {
+            "no-current-timetable"
+        }
+
+        return [currentTimetableIdentity, container.bootstrapError ?? "no-bootstrap-error"].joined(separator: "#")
+    }
+}

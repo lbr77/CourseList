@@ -66,13 +66,6 @@ private final class CoursePreviewController: UIViewController {
             target: self,
             action: #selector(closeTapped)
         )
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "编辑",
-            style: .done,
-            target: self,
-            action: #selector(editTapped)
-        )
-
         render()
         Task { await reloadData(showLoading: true) }
     }
@@ -200,35 +193,12 @@ private final class CoursePreviewController: UIViewController {
         )
         objects.append(
             ConfigurableObject(
-                icon: "mappin.and.ellipse",
-                title: "默认地点",
-                explain: normalizeOptionalText(course.location) ?? "未设置",
-                ephemeralAnnotation: .action { _ in }
-            )
-        )
-        objects.append(
-            ConfigurableObject(
                 icon: "note.text",
                 title: "备注",
                 explain: normalizeOptionalText(course.note) ?? "未设置",
                 ephemeralAnnotation: .action { _ in }
             )
         )
-
-        if course.meetings.isEmpty {
-            objects.append(infoObject(text: "这门课还没有上课时间。"))
-        } else {
-            for (index, meeting) in course.meetings.enumerated() {
-                objects.append(
-                    ConfigurableObject(
-                        icon: "clock.badge",
-                        title: "第 \(index + 1) 条时间",
-                        explain: meetingSummary(meeting),
-                        ephemeralAnnotation: .action { _ in }
-                    )
-                )
-            }
-        }
 
         objects.append(
             ConfigurableObject(

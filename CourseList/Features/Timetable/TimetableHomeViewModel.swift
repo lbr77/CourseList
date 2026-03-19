@@ -26,7 +26,7 @@ final class TimetableHomeViewModel: ObservableObject {
         do {
             errorMessage = nil
             let timetables = try await repository.listTimetables()
-            let timetable = resolveCurrentTimetable(timetables: timetables)
+            let timetable = try await repository.getActiveTimetable() ?? resolvePreferredTimetable(timetables: timetables)
             currentTimetable = timetable
 
             guard let timetable else {

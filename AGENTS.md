@@ -16,6 +16,7 @@
 - There is currently no dedicated test target in the repository. If you add one, prefer `xcodebuild ... test` with the same project and scheme pattern.
 
 ## Coding Style & Naming Conventions
+- Do not add placeholders to input fields unless the user explicitly requests them.
 - Use Swift with 4-space indentation and standard Xcode formatting.
 - Prefer small, focused types and extensions over large multi-purpose files.
 - Name Swift types in `UpperCamelCase`; methods, properties, and variables in `lowerCamelCase`.

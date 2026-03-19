@@ -239,20 +239,13 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
             stackView.addArrangedSubview(SeparatorView())
         } else {
             for template in templates {
-                let page = ConfigurablePageView(page: { [weak self] in
-                    guard let self else { return nil }
-                    return PeriodTemplateDetailController(
-                        repository: self.repository,
-                        templateId: template.id,
-                        onChanged: { [weak self] in
-                            Task { await self?.reloadData() }
-                        }
-                    )
-                })
-                page.configure(icon: UIImage(systemName: template.isDefault ? "star.circle.fill" : "clock.badge"))
-                page.configure(title: template.name)
-                page.configure(description: template.isDefault ? "默认模板" : "点击编辑节次")
-                stackView.addArrangedSubviewWithMargin(page)
+                let action = ConfigurableActionView { [weak self] _ in
+                    self?.presentEditor(templateId: template.id)
+                }
+                action.configure(icon: UIImage(systemName: template.isDefault ? "star.circle.fill" : "clock.badge"))
+                action.configure(title: template.name)
+                action.configure(description: template.isDefault ? "默认模板 · 点击编辑" : "点击编辑节次")
+                stackView.addArrangedSubviewWithMargin(action)
                 stackView.addArrangedSubview(SeparatorView())
             }
         }
@@ -264,58 +257,22 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
     }
 
     @objc private func addTemplateTapped() {
-        let input = AlertInputViewController(
-            title: "新建节次模板",
-            message: "请输入模板名称。",
-            placeholder: "例如：本科默认作息",
-            text: "",
-            cancelButtonText: "取消",
-            doneButtonText: "确定"
-        ) { [weak self] output in
-            self?.handleCreateTemplate(name: output)
-        }
-        present(input, animated: true)
+        presentEditor(templateId: nil)
     }
 
-    private func handleCreateTemplate(name: String) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            presentMessage(title: "名称无效", message: "模板名称不能为空。")
-            return
-        }
-
-        Task {
-            do {
-                var seedPeriods = defaultTimetablePeriods()
-                if let defaultTemplate = try await repository.getDefaultPeriodTemplate() {
-                    let items = try await repository.listPeriodTemplateItems(templateId: defaultTemplate.id)
-                    let mapped = items.map {
-                        TimetablePeriodInput(periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime)
-                    }
-                    if !mapped.isEmpty {
-                        seedPeriods = mapped
-                    }
-                }
-
-                let templateId = try await repository.savePeriodTemplate(
-                    input: .init(id: nil, name: trimmed, periods: seedPeriods)
-                )
+    private func presentEditor(templateId: String?) {
+        let editor = PeriodTemplateEditorController(
+            repository: repository,
+            templateId: templateId,
+            onFinished: { [weak self] in
+                self?.dismiss(animated: true)
                 NotificationCenter.default.post(name: .timetableRepositoryDidChange, object: nil)
-                await reloadData()
-                navigationController?.pushViewController(
-                    PeriodTemplateDetailController(
-                        repository: repository,
-                        templateId: templateId,
-                        onChanged: { [weak self] in
-                            Task { await self?.reloadData() }
-                        }
-                    ),
-                    animated: true
-                )
-            } catch {
-                presentError(error)
+                Task { await self?.reloadData() }
             }
-        }
+        )
+        let navigationController = UINavigationController(rootViewController: editor)
+        navigationController.navigationBar.prefersLargeTitles = false
+        present(navigationController, animated: true)
     }
 
     private func reloadData() async {
@@ -331,38 +288,26 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
         isLoading = false
         rebuildContent()
     }
-
-    private func presentError(_ error: Error) {
-        presentMessage(title: "操作失败", message: error.localizedDescription)
-    }
-
-    private func presentMessage(title: String, message: String) {
-        let alert = AlertViewController(title: title, message: message) { context in
-            context.addAction(title: "确定", attribute: .accent) {
-                context.dispose()
-            }
-        }
-        present(alert, animated: true)
-    }
 }
 
 @MainActor
-private final class PeriodTemplateDetailController: SettingsReloadableStackScrollController {
+private final class PeriodTemplateEditorController: SettingsReloadableStackScrollController {
     private let repository: any TimetableRepositoryProtocol
-    private let templateId: String
-    private let onChanged: () -> Void
+    private let onFinished: () -> Void
 
-    private var template: PeriodTemplate?
+    private var templateId: String?
+    private var templateName = ""
     private var periods: [TimetablePeriodInput] = []
-    private var loadError: Error?
+    private var isDefaultTemplate = false
     private var isLoading = true
+    private var loadError: Error?
 
-    init(repository: any TimetableRepositoryProtocol, templateId: String, onChanged: @escaping () -> Void) {
+    init(repository: any TimetableRepositoryProtocol, templateId: String?, onFinished: @escaping () -> Void) {
         self.repository = repository
         self.templateId = templateId
-        self.onChanged = onChanged
+        self.onFinished = onFinished
         super.init(nibName: nil, bundle: nil)
-        title = "节次模板"
+        title = templateId == nil ? "新建模板" : "编辑模板"
     }
 
     @available(*, unavailable)
@@ -372,17 +317,26 @@ private final class PeriodTemplateDetailController: SettingsReloadableStackScrol
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .cancel,
+            target: self,
+            action: #selector(cancelTapped)
+        )
         navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: nil,
-            image: UIImage(systemName: "plus"),
-            primaryAction: nil,
-            menu: makeAddMenu()
+            image: UIImage(systemName: "checkmark"),
+            style: .done,
+            target: self,
+            action: #selector(saveTapped)
         )
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        Task { await reloadData() }
+        if isLoading {
+            Task { await loadData() }
+        } else {
+            rebuildContent()
+        }
     }
 
     override func buildContent() {
@@ -402,20 +356,12 @@ private final class PeriodTemplateDetailController: SettingsReloadableStackScrol
             return
         }
 
-        guard let template else {
-            stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "模板不存在。")
-            )
-            stackView.addArrangedSubviewWithMargin(UIView())
-            return
-        }
-
         appendEditableField(
             icon: "textformat",
             title: "模板名称",
-            description: template.isDefault ? "当前默认模板" : nil,
-            value: template.name,
-            placeholder: "未设置"
+            description: isDefaultTemplate ? "当前默认模板" : nil,
+            value: templateName,
+            placeholder: ""
         ) { [weak self] view in
             self?.presentNameEditor(from: view)
         }
@@ -432,9 +378,7 @@ private final class PeriodTemplateDetailController: SettingsReloadableStackScrol
                     periodIndex: period.periodIndex,
                     getPeriods: { [weak self] in self?.periods ?? [] },
                     setPeriods: { [weak self] in self?.periods = $0 },
-                    onChange: { [weak self] in
-                        self?.saveCurrentTemplate()
-                    }
+                    onChange: { }
                 )
             })
             page.configure(icon: UIImage(systemName: "clock"))
@@ -446,57 +390,74 @@ private final class PeriodTemplateDetailController: SettingsReloadableStackScrol
 
         if periods.isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "点击右上角 + 添加节次。")
+                ConfigurableSectionFooterView().with(footer: "当前还没有节次，请先添加节次。")
             )
             stackView.addArrangedSubview(SeparatorView())
         }
 
-        stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "管理")
-        ) { $0.bottom /= 2 }
+        let addAction = ConfigurableActionView { [weak self] _ in
+            self?.presentAddMenu()
+        }
+        addAction.configure(icon: UIImage(systemName: "plus.circle"))
+        addAction.configure(title: "添加节次")
+        stackView.addArrangedSubviewWithMargin(addAction)
         stackView.addArrangedSubview(SeparatorView())
 
-        if !template.isDefault {
-            let defaultAction = ConfigurableActionView { [weak self] _ in
-                self?.setAsDefaultTemplate()
+        if templateId != nil {
+            stackView.addArrangedSubviewWithMargin(
+                ConfigurableSectionHeaderView().with(header: "管理")
+            ) { $0.bottom /= 2 }
+            stackView.addArrangedSubview(SeparatorView())
+
+            if !isDefaultTemplate {
+                let defaultAction = ConfigurableActionView { [weak self] _ in
+                    self?.setAsDefaultTemplate()
+                }
+                defaultAction.configure(icon: UIImage(systemName: "star"))
+                defaultAction.configure(title: "设为默认模板")
+                defaultAction.configure(description: "新建课表时默认使用这套节次。")
+                stackView.addArrangedSubviewWithMargin(defaultAction)
+                stackView.addArrangedSubview(SeparatorView())
             }
-            defaultAction.configure(icon: UIImage(systemName: "star"))
-            defaultAction.configure(title: "设为默认模板")
-            defaultAction.configure(description: "新建课表时默认使用这套节次。")
-            stackView.addArrangedSubviewWithMargin(defaultAction)
+
+            let deleteAction = ConfigurableActionView { [weak self] _ in
+                self?.promptDeleteTemplate()
+            }
+            deleteAction.configure(icon: UIImage(systemName: "trash"))
+            deleteAction.configure(title: "删除模板")
+            deleteAction.configure(description: "删除这个节次模板。若它是默认模板，会自动切换到其它模板。")
+            deleteAction.titleLabel.textColor = .systemRed
+            deleteAction.iconView.tintColor = .systemRed
+            deleteAction.descriptionLabel.textColor = .systemRed
+            deleteAction.imageView.tintColor = .systemRed
+            stackView.addArrangedSubviewWithMargin(deleteAction)
             stackView.addArrangedSubview(SeparatorView())
         }
-
-        let deleteAction = ConfigurableActionView { [weak self] _ in
-            self?.promptDeleteTemplate()
-        }
-        deleteAction.configure(icon: UIImage(systemName: "trash"))
-        deleteAction.configure(title: "删除模板")
-        deleteAction.configure(description: "删除这个节次模板。若它是默认模板，会自动切换到其它模板。")
-        deleteAction.titleLabel.textColor = .systemRed
-        deleteAction.iconView.tintColor = .systemRed
-        deleteAction.descriptionLabel.textColor = .systemRed
-        deleteAction.imageView.tintColor = .systemRed
-        stackView.addArrangedSubviewWithMargin(deleteAction)
-        stackView.addArrangedSubview(SeparatorView())
 
         stackView.addArrangedSubviewWithMargin(UIView())
     }
 
-    private func reloadData() async {
-        isLoading = true
-        loadError = nil
-        rebuildContent()
-
+    private func loadData() async {
         do {
-            async let templateTask = repository.getPeriodTemplate(id: templateId)
-            async let periodsTask = repository.listPeriodTemplateItems(templateId: templateId)
+            if let templateId {
+                async let templateTask = repository.getPeriodTemplate(id: templateId)
+                async let itemsTask = repository.listPeriodTemplateItems(templateId: templateId)
+                let template = try await templateTask
+                let items = try await itemsTask
 
-            template = try await templateTask
-            periods = try await periodsTask.map {
-                .init(periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime)
+                guard let template else {
+                    throw AppError.validation("模板不存在。")
+                }
+
+                templateName = template.name
+                isDefaultTemplate = template.isDefault
+                periods = items.map {
+                    .init(periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime)
+                }
+            } else {
+                periods = []
             }
-            title = template?.name ?? "节次模板"
+            loadError = nil
         } catch {
             loadError = error
         }
@@ -505,121 +466,94 @@ private final class PeriodTemplateDetailController: SettingsReloadableStackScrol
         rebuildContent()
     }
 
-    private func makeAddMenu() -> UIMenu {
-        UIMenu(children: [
-            UIAction(
-                title: "添加单节",
-                image: UIImage(systemName: "plus.circle")
-            ) { [weak self] _ in
-                self?.addSinglePeriod()
-            },
-            UIAction(
-                title: "批量添加",
-                image: UIImage(systemName: "square.stack.3d.up.badge.plus")
-            ) { [weak self] _ in
-                self?.presentBatchAddPrompt()
-            },
-        ])
+    @objc private func cancelTapped() {
+        dismiss(animated: true)
+    }
+
+    @objc private func saveTapped() {
+        Task {
+            do {
+                let savedId = try await repository.savePeriodTemplate(
+                    input: .init(id: templateId, name: templateName, periods: periods)
+                )
+                templateId = savedId
+                onFinished()
+            } catch {
+                presentError(error)
+            }
+        }
+    }
+
+    private func presentNameEditor(from view: UIView) {
+        let input = AlertInputViewController(
+            title: "编辑模板名称",
+            message: "请输入模板名称。",
+            placeholder: "",
+            text: templateName,
+            cancelButtonText: "取消",
+            doneButtonText: "确定"
+        ) { [weak self] output in
+            self?.templateName = output
+            self?.rebuildContent()
+        }
+        view.hostingViewController?.present(input, animated: true)
+    }
+
+    private func presentAddMenu() {
+        let alert = AlertViewController(title: "添加节次", message: "请选择添加方式。") { [weak self] context in
+            context.addAction(title: "取消") {
+                context.dispose()
+            }
+            context.addAction(title: "添加单节", attribute: .accent) {
+                context.dispose {
+                    self?.addSinglePeriod()
+                }
+            }
+            context.addAction(title: "批量添加") {
+                context.dispose {
+                    self?.presentBatchAddPrompt()
+                }
+            }
+        }
+        present(alert, animated: true)
     }
 
     private func addSinglePeriod() {
         let newPeriod = makeNextTimetablePeriodInput(after: periods)
         periods.append(newPeriod)
         rebuildContent()
-        saveCurrentTemplate()
 
         navigationController?.pushViewController(
             PeriodTemplatePeriodDetailController(
                 periodIndex: newPeriod.periodIndex,
                 getPeriods: { [weak self] in self?.periods ?? [] },
                 setPeriods: { [weak self] in self?.periods = $0 },
-                onChange: { [weak self] in
-                    self?.saveCurrentTemplate()
-                }
+                onChange: { }
             ),
             animated: true
         )
     }
 
     private func presentBatchAddPrompt() {
-        let input = AlertInputViewController(
-            title: "批量添加节次",
-            message: "请输入要连续添加的节次数量。",
-            placeholder: "例如：4",
-            text: "2",
-            cancelButtonText: "取消",
-            doneButtonText: "确定"
-        ) { [weak self] output in
-            self?.handleBatchAdd(output: output)
+        let controller = PeriodTemplateBatchAddController { [weak self] generatedPeriods in
+            guard let self else { return }
+            periods.append(contentsOf: generatedPeriods)
+            rebuildContent()
         }
-        present(input, animated: true)
-    }
-
-    private func handleBatchAdd(output: String) {
-        let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let count = Int(trimmed), count > 0 else {
-            presentMessage(title: "数量无效", message: "请输入大于 0 的整数。")
-            return
-        }
-
-        for _ in 0 ..< count {
-            periods.append(makeNextTimetablePeriodInput(after: periods))
-        }
-        rebuildContent()
-        saveCurrentTemplate()
-    }
-
-    private func presentNameEditor(from view: UIView) {
-        guard let template else { return }
-        let input = AlertInputViewController(
-            title: "编辑模板名称",
-            message: "请输入模板名称。",
-            placeholder: "例如：本科默认作息",
-            text: template.name,
-            cancelButtonText: "取消",
-            doneButtonText: "确定"
-        ) { [weak self] output in
-            self?.handleNameChange(output: output)
-        }
-        view.hostingViewController?.present(input, animated: true)
-    }
-
-    private func handleNameChange(output: String) {
-        let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            presentMessage(title: "名称无效", message: "模板名称不能为空。")
-            return
-        }
-
-        template?.name = trimmed
-        title = trimmed
-        rebuildContent()
-        saveCurrentTemplate()
-    }
-
-    private func saveCurrentTemplate() {
-        guard let template else { return }
-        Task {
-            do {
-                _ = try await repository.savePeriodTemplate(
-                    input: .init(id: template.id, name: template.name, periods: periods)
-                )
-                NotificationCenter.default.post(name: .timetableRepositoryDidChange, object: nil)
-                onChanged()
-            } catch {
-                presentError(error)
-                await reloadData()
-            }
-        }
+        let navigationController = UINavigationController(rootViewController: controller)
+        navigationController.navigationBar.prefersLargeTitles = false
+        present(navigationController, animated: true)
     }
 
     private func setAsDefaultTemplate() {
+        guard let templateId else { return }
         Task {
             do {
+                _ = try await repository.savePeriodTemplate(
+                    input: .init(id: templateId, name: templateName, periods: periods)
+                )
                 try await repository.setDefaultPeriodTemplate(id: templateId)
-                NotificationCenter.default.post(name: .timetableRepositoryDidChange, object: nil)
-                onChanged()
-                await reloadData()
+                onFinished()
             } catch {
                 presentError(error)
             }
@@ -644,12 +578,11 @@ private final class PeriodTemplateDetailController: SettingsReloadableStackScrol
     }
 
     private func deleteTemplate() {
+        guard let templateId else { return }
         Task {
             do {
                 try await repository.deletePeriodTemplate(id: templateId)
-                NotificationCenter.default.post(name: .timetableRepositoryDidChange, object: nil)
-                onChanged()
-                navigationController?.popViewController(animated: true)
+                onFinished()
             } catch {
                 presentError(error)
             }
@@ -669,6 +602,360 @@ private final class PeriodTemplateDetailController: SettingsReloadableStackScrol
 
     private func presentError(_ error: Error) {
         presentMessage(title: "操作失败", message: error.localizedDescription)
+    }
+
+    private func presentMessage(title: String, message: String) {
+        let alert = AlertViewController(title: title, message: message) { context in
+            context.addAction(title: "确定", attribute: .accent) {
+                context.dispose()
+            }
+        }
+        present(alert, animated: true)
+    }
+}
+
+private final class SettingsAlertOptionPickerContentController: AlertContentController, UIPickerViewDataSource, UIPickerViewDelegate {
+    let picker = UIPickerView()
+
+    private let options: [String]
+
+    init(
+        title: String = "",
+        message: String = "",
+        options: [String],
+        selectedIndex: Int,
+        setupActions: @escaping (ActionContext) -> Void
+    ) {
+        self.options = options
+        super.init(title: title, message: message, setupActions: setupActions)
+
+        picker.translatesAutoresizingMaskIntoConstraints = false
+        picker.dataSource = self
+        picker.delegate = self
+
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(picker)
+
+        NSLayoutConstraint.activate([
+            picker.topAnchor.constraint(equalTo: container.topAnchor),
+            picker.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            picker.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            picker.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            container.heightAnchor.constraint(equalToConstant: 216),
+        ])
+
+        customViews.append(container)
+        picker.selectRow(max(0, min(selectedIndex, options.count - 1)), inComponent: 0, animated: false)
+    }
+
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        _ = pickerView
+        return 1
+    }
+
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        _ = pickerView
+        _ = component
+        return options.count
+    }
+
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        _ = pickerView
+        _ = component
+        return options[row]
+    }
+}
+
+private final class SettingsAlertOptionPickerViewController: AlertViewController {
+    convenience init(
+        title: String,
+        message: String = "",
+        options: [String],
+        selectedIndex: Int,
+        cancelButtonText: String = "取消",
+        doneButtonText: String = "确定",
+        onConfirm: @escaping (Int) -> Void
+    ) {
+        var controller: SettingsAlertOptionPickerContentController!
+        controller = SettingsAlertOptionPickerContentController(
+            title: title,
+            message: message,
+            options: options,
+            selectedIndex: selectedIndex
+        ) { context in
+            context.addAction(title: cancelButtonText) {
+                context.dispose()
+            }
+            context.addAction(title: doneButtonText, attribute: .accent) {
+                context.dispose {
+                    onConfirm(controller.picker.selectedRow(inComponent: 0))
+                }
+            }
+        }
+
+        self.init(contentViewController: controller)
+    }
+
+    required init(contentViewController: UIViewController) {
+        super.init(contentViewController: contentViewController)
+    }
+}
+
+private final class PeriodTemplateBatchAddController: SettingsReloadableStackScrollController {
+    private static let durationOptions = Array(stride(from: 30, through: 120, by: 5))
+    private static let breakOptions = Array(stride(from: 0, through: 60, by: 5))
+    private static let countOptions = Array(0 ... 12)
+
+    private var durationMinutes = 45
+    private var breakMinutes = 10
+    private var morningStartTime = ""
+    private var morningCount = 0
+    private var afternoonStartTime = ""
+    private var afternoonCount = 0
+
+    private let onConfirm: ([TimetablePeriodInput]) -> Void
+
+    init(onConfirm: @escaping ([TimetablePeriodInput]) -> Void) {
+        self.onConfirm = onConfirm
+        super.init(nibName: nil, bundle: nil)
+        title = "批量添加节次"
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .cancel,
+            target: self,
+            action: #selector(cancelTapped)
+        )
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "checkmark"),
+            style: .done,
+            target: self,
+            action: #selector(confirmTapped)
+        )
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        rebuildContent()
+    }
+
+    override func buildContent() {
+        appendEditableField(
+            icon: "timer",
+            title: "每节时长",
+            description: nil,
+            value: "\(durationMinutes) 分钟",
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentDurationPicker(from: view)
+        }
+
+        appendEditableField(
+            icon: "pause.circle",
+            title: "课间时间",
+            description: nil,
+            value: "\(breakMinutes) 分钟",
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentBreakPicker(from: view)
+        }
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionHeaderView().with(header: "上午")
+        ) { $0.bottom /= 2 }
+        stackView.addArrangedSubview(SeparatorView())
+
+        appendEditableField(
+            icon: "sun.max",
+            title: "开始时间",
+            description: nil,
+            value: morningStartTime.isEmpty ? "未设置" : morningStartTime,
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentTimePicker(from: view, title: "上午第一节开始时间", currentValue: self?.morningStartTime ?? "") { newValue in
+                self?.morningStartTime = newValue
+                view.configure(value: newValue)
+            }
+        }
+
+        appendEditableField(
+            icon: "number",
+            title: "几节课",
+            description: nil,
+            value: "\(morningCount) 节",
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentCountPicker(from: view, title: "上午几节课", currentCount: self?.morningCount ?? 0) { count in
+                self?.morningCount = count
+                view.configure(value: "\(count) 节")
+            }
+        }
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionHeaderView().with(header: "下午")
+        ) { $0.bottom /= 2 }
+        stackView.addArrangedSubview(SeparatorView())
+
+        appendEditableField(
+            icon: "sunset",
+            title: "第一节时间",
+            description: nil,
+            value: afternoonStartTime.isEmpty ? "未设置" : afternoonStartTime,
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentTimePicker(from: view, title: "下午第一节开始时间", currentValue: self?.afternoonStartTime ?? "") { newValue in
+                self?.afternoonStartTime = newValue
+                view.configure(value: newValue)
+            }
+        }
+
+        appendEditableField(
+            icon: "number",
+            title: "几节课",
+            description: nil,
+            value: "\(afternoonCount) 节",
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentCountPicker(from: view, title: "下午几节课", currentCount: self?.afternoonCount ?? 0) { count in
+                self?.afternoonCount = count
+                view.configure(value: "\(count) 节")
+            }
+        }
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionFooterView().with(footer: "会按设定的时长和课间时间生成相邻节次。")
+        )
+        stackView.addArrangedSubviewWithMargin(UIView())
+    }
+
+    @objc private func cancelTapped() {
+        dismiss(animated: true)
+    }
+
+    @objc private func confirmTapped() {
+        do {
+            let generated = try buildPeriods()
+            onConfirm(generated)
+            dismiss(animated: true)
+        } catch {
+            presentMessage(title: "参数无效", message: error.localizedDescription)
+        }
+    }
+
+    private func buildPeriods() throws -> [TimetablePeriodInput] {
+        if morningCount == 0 && afternoonCount == 0 {
+            throw AppError.validation("上午和下午至少要填写一段课程。")
+        }
+
+        var generated: [TimetablePeriodInput] = []
+        if morningCount > 0 {
+            guard let start = parseTimeInput(morningStartTime) else {
+                throw AppError.validation("请设置上午第一节开始时间。")
+            }
+            generated.append(contentsOf: makePeriods(start: start, count: morningCount, startIndex: generated.count + 1))
+        }
+
+        if afternoonCount > 0 {
+            guard let start = parseTimeInput(afternoonStartTime) else {
+                throw AppError.validation("请设置下午第一节开始时间。")
+            }
+            generated.append(contentsOf: makePeriods(start: start, count: afternoonCount, startIndex: generated.count + 1))
+        }
+
+        return generated
+    }
+
+    private func makePeriods(start: Date, count: Int, startIndex: Int) -> [TimetablePeriodInput] {
+        var result: [TimetablePeriodInput] = []
+        let duration = TimeInterval(durationMinutes * 60)
+        let breakDuration = TimeInterval(breakMinutes * 60)
+
+        for offset in 0 ..< count {
+            let currentStart = start.addingTimeInterval(TimeInterval(offset) * (duration + breakDuration))
+            let currentEnd = currentStart.addingTimeInterval(duration)
+            result.append(
+                TimetablePeriodInput(
+                    periodIndex: startIndex + offset,
+                    startTime: formatTimeInput(currentStart),
+                    endTime: formatTimeInput(currentEnd)
+                )
+            )
+        }
+        return result
+    }
+
+    private func presentDurationPicker(from view: UIView) {
+        let selectedIndex = Self.durationOptions.firstIndex(of: durationMinutes) ?? 3
+        let picker = SettingsAlertOptionPickerViewController(
+            title: "每节时长",
+            message: "选择每节课的时长。",
+            options: Self.durationOptions.map { "\($0) 分钟" },
+            selectedIndex: selectedIndex
+        ) { [weak self] index in
+            guard let self else { return }
+            durationMinutes = Self.durationOptions[index]
+            rebuildContent()
+        }
+        view.hostingViewController?.present(picker, animated: true)
+    }
+
+    private func presentBreakPicker(from view: UIView) {
+        let selectedIndex = Self.breakOptions.firstIndex(of: breakMinutes) ?? 2
+        let picker = SettingsAlertOptionPickerViewController(
+            title: "课间时间",
+            message: "选择每节之间的课间时间。",
+            options: Self.breakOptions.map { "\($0) 分钟" },
+            selectedIndex: selectedIndex
+        ) { [weak self] index in
+            guard let self else { return }
+            breakMinutes = Self.breakOptions[index]
+            rebuildContent()
+        }
+        view.hostingViewController?.present(picker, animated: true)
+    }
+
+    private func presentCountPicker(from view: UIView, title: String, currentCount: Int, onConfirm: @escaping (Int) -> Void) {
+        let picker = SettingsAlertOptionPickerViewController(
+            title: title,
+            message: "选择节数。",
+            options: Self.countOptions.map { "\($0) 节" },
+            selectedIndex: min(currentCount, Self.countOptions.count - 1)
+        ) { index in
+            onConfirm(Self.countOptions[index])
+        }
+        view.hostingViewController?.present(picker, animated: true)
+    }
+
+    private func presentTimePicker(from view: UIView, title: String, currentValue: String, onConfirm: @escaping (String) -> Void) {
+        let selectedDate = parseTimeInput(currentValue) ?? parseTimeInput("08:00") ?? Date()
+        let picker = AlertDatePickerViewController(
+            title: title,
+            mode: .time,
+            selectedDate: selectedDate
+        ) { date in
+            let output = formatTimeInput(date)
+            onConfirm(output)
+        }
+        view.hostingViewController?.present(picker, animated: true)
+    }
+
+    private func appendEditableField(icon: String, title: String, description: String?, value: String, placeholder: String, tap: @escaping (ConfigurableInfoView) -> Void) {
+        let view = ConfigurableInfoView()
+        view.configure(icon: UIImage(systemName: icon))
+        view.configure(title: title)
+        view.configure(description: description ?? "")
+        view.configure(value: value.isEmpty ? placeholder : value)
+        view.setTapBlock(tap)
+        stackView.addArrangedSubviewWithMargin(view)
+        stackView.addArrangedSubview(SeparatorView())
     }
 
     private func presentMessage(title: String, message: String) {
@@ -717,7 +1004,7 @@ private final class PeriodTemplatePeriodDetailController: SettingsReloadableStac
             title: "开始时间",
             description: nil,
             value: period.startTime,
-            placeholder: "08:00"
+            placeholder: ""
         ) { [weak self] view in
             self?.presentTimePicker(from: view, title: "编辑开始时间", message: "请选择开始时间。", currentValue: period.startTime) { newValue in
                 self?.updateCurrentPeriod { $0.startTime = newValue }
@@ -730,7 +1017,7 @@ private final class PeriodTemplatePeriodDetailController: SettingsReloadableStac
             title: "结束时间",
             description: nil,
             value: period.endTime,
-            placeholder: "08:45"
+            placeholder: ""
         ) { [weak self] view in
             self?.presentTimePicker(from: view, title: "编辑结束时间", message: "请选择结束时间。", currentValue: period.endTime) { newValue in
                 self?.updateCurrentPeriod { $0.endTime = newValue }

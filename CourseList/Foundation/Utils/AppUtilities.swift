@@ -114,7 +114,7 @@ func parseTimeInput(_ value: String) -> Date? {
 
     var components = DateComponents()
     components.calendar = Calendar(identifier: .gregorian)
-    components.timeZone = .gmt
+    components.timeZone = .current
     components.year = 2001
     components.month = 1
     components.day = 1
@@ -218,6 +218,10 @@ func resolvePreferredTimetable(on date: Date = Date(), timetables: [Timetable]) 
 }
 
 func shouldDisplayTimetableBefore(_ lhs: Timetable, _ rhs: Timetable, on date: Date = Date()) -> Bool {
+    if lhs.isActive != rhs.isActive {
+        return lhs.isActive && !rhs.isActive
+    }
+
     let lhsPhase = resolveTimetablePhase(lhs, on: date)
     let rhsPhase = resolveTimetablePhase(rhs, on: date)
     let lhsRank = timetablePhaseRank(lhsPhase)

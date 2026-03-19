@@ -725,7 +725,7 @@ private final class CourseManagementController: ReloadableStackScrollController 
     }
 
     private func presentCourseEditor(from controller: UIViewController?, courseId: String?) {
-        let editor = CourseEditorCoordinator.makeController(
+        let editor = CourseList.CourseEditorCoordinator.makeController(
             repository: repository,
             courseId: courseId,
             timetableId: timetableId,

@@ -20,7 +20,11 @@ final class TimetableRepository: TimetableRepositoryProtocol {
     func getActiveTimetable() async throws -> Timetable? {
         try await manager.read { database in
             let records: [TimetableRecord] = try database.getObjects(fromTable: DatabaseTable.timetables)
-            return resolveCurrentTimetable(timetables: records.map(Self.mapTimetable))
+            let timetables = records.map(Self.mapTimetable)
+            if let active = timetables.first(where: \.isActive) {
+                return active
+            }
+            return resolvePreferredTimetable(timetables: timetables)
         }
     }
 
@@ -45,6 +49,8 @@ final class TimetableRepository: TimetableRepositoryProtocol {
 
         try await manager.write { database in
             try database.run(transaction: { _ in
+                try database.update(table: DatabaseTable.timetables, on: TimetableRecord.Properties.isActive, with: false)
+
                 let record = TimetableRecord()
                 let normalizedName = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 record.id = timetableId
@@ -52,7 +58,7 @@ final class TimetableRepository: TimetableRepositoryProtocol {
                 record.termName = normalizedName
                 record.startDate = input.startDate
                 record.weeksCount = input.weeksCount
-                record.isActive = false
+                record.isActive = true
                 record.createdAt = timestamp
                 record.updatedAt = timestamp
                 try database.insert(record, intoTable: DatabaseTable.timetables)
@@ -332,6 +338,8 @@ final class TimetableRepository: TimetableRepositoryProtocol {
 
         try await manager.write { database in
             try database.run(transaction: { _ in
+                try database.update(table: DatabaseTable.timetables, on: TimetableRecord.Properties.isActive, with: false)
+
                 let timetable = TimetableRecord()
                 let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 timetable.id = timetableId
@@ -339,7 +347,7 @@ final class TimetableRepository: TimetableRepositoryProtocol {
                 timetable.termName = normalizedName
                 timetable.startDate = draft.startDate
                 timetable.weeksCount = draft.weeksCount
-                timetable.isActive = false
+                timetable.isActive = true
                 timetable.createdAt = timestamp
                 timetable.updatedAt = timestamp
                 try database.insert(timetable, intoTable: DatabaseTable.timetables)

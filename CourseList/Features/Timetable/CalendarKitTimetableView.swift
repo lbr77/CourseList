@@ -40,7 +40,7 @@ final class TimetableWeekViewController: WeekViewController {
             guard scrollToCurrentWeekToken != lastHandledScrollToCurrentWeekToken else { return }
             lastHandledScrollToCurrentWeekToken = scrollToCurrentWeekToken
             guard isViewLoaded else { return }
-            move(to: Date())
+            move(to: resolvedDisplayDate(preferred: Date()))
         }
     }
 
@@ -52,6 +52,9 @@ final class TimetableWeekViewController: WeekViewController {
     private var lastHandledScrollToCurrentWeekToken = 0
 
     func apply(timetable: Timetable?, periods: [TimetablePeriod], courses: [CourseWithMeetings]) {
+        let previousTimetableId = self.timetable?.id
+        let selectedDate = weekView.state?.selectedDate
+
         self.timetable = timetable
         self.periods = periods.sorted { $0.periodIndex < $1.periodIndex }
         self.courses = courses
@@ -59,8 +62,8 @@ final class TimetableWeekViewController: WeekViewController {
         let signature = [
             timetable?.id ?? "no-timetable",
             timetable?.updatedAt ?? "no-updated-at",
-            String(courses.count),
-            String(periods.count)
+            periodsSignature(self.periods),
+            coursesSignature(self.courses)
         ].joined(separator: "|")
 
         guard signature != lastAppliedSignature else { return }
@@ -68,6 +71,10 @@ final class TimetableWeekViewController: WeekViewController {
 
         if isViewLoaded {
             reloadData()
+
+            if shouldResetVisibleDate(previousTimetableId: previousTimetableId, selectedDate: selectedDate) {
+                move(to: resolvedDisplayDate(preferred: selectedDate))
+            }
         }
     }
 
@@ -105,7 +112,7 @@ final class TimetableWeekViewController: WeekViewController {
     }
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        move(to: Date())
+        move(to: resolvedDisplayDate(preferred: weekView.state?.selectedDate ?? Date()))
         onVisibleDateChange?(weekView.state?.selectedDate ?? Date())
     }
 
@@ -154,6 +161,61 @@ final class TimetableWeekViewController: WeekViewController {
         let week = Int(floor(Double(diffDays) / 7.0)) + 1
         guard week >= 1, week <= timetable.weeksCount else { return nil }
         return week
+    }
+
+    private func shouldResetVisibleDate(previousTimetableId: String?, selectedDate: Date?) -> Bool {
+        guard let timetable else { return false }
+        guard previousTimetableId == timetable.id else { return true }
+        guard let selectedDate else { return true }
+        return courseWeek(for: selectedDate, timetable: timetable) == nil
+    }
+
+    private func resolvedDisplayDate(preferred date: Date?) -> Date {
+        guard let timetable else { return date ?? Date() }
+
+        if let date, courseWeek(for: date, timetable: timetable) != nil {
+            return date
+        }
+
+        let today = Date()
+        if courseWeek(for: today, timetable: timetable) != nil {
+            return today
+        }
+
+        if let startDate = parseDateInput(timetable.startDate) {
+            return startDate
+        }
+
+        return date ?? today
+    }
+
+    private func periodsSignature(_ periods: [TimetablePeriod]) -> String {
+        periods
+            .map { "\($0.id):\($0.periodIndex):\($0.startTime):\($0.endTime)" }
+            .joined(separator: ",")
+    }
+
+    private func coursesSignature(_ courses: [CourseWithMeetings]) -> String {
+        courses
+            .map { course in
+                let meetings = course.meetings
+                    .map {
+                        "\($0.id):\($0.weekday):\($0.startWeek):\($0.endWeek):\($0.startPeriod):\($0.endPeriod):\($0.location ?? ""):\($0.weekType.rawValue)"
+                    }
+                    .joined(separator: ";")
+
+                return [
+                    course.id,
+                    course.updatedAt,
+                    course.name,
+                    course.teacher ?? "",
+                    course.location ?? "",
+                    course.color ?? "",
+                    course.note ?? "",
+                    meetings
+                ].joined(separator: ":")
+            }
+            .joined(separator: "|")
     }
 
     private func weekdayIndex(for date: Date) -> Int {

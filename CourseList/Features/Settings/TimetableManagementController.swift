@@ -143,7 +143,7 @@ final class TimetableManagementController: UIViewController {
     private func makeAddMenu() -> UIMenu {
         UIMenu(children: [
             UIAction(
-                title: "学校导入",
+                title: "教务导入",
                 image: UIImage(systemName: "square.and.arrow.down")
             ) { [weak self] _ in
                 self?.onImportTap()

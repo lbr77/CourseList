@@ -78,14 +78,23 @@ struct TimetableHomeView: View {
                 .controlSize(.small)
             }
 
-
-            Button(action: onSettingsTap) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 36, height: 36)
+            if #available(iOS 26.0, *) {
+                Button(action: onSettingsTap) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(width: 36, height: 36)
+                }
+                .buttonStyle(.glass)
+                .accessibilityLabel("设置")
+            } else {
+                Button(action: onSettingsTap) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(width: 36, height: 36)
+                }
+                .accessibilityLabel("设置")
             }
-            .settingsButtonStyle()
-            .accessibilityLabel("设置")
+            
         }
     }
 
@@ -99,27 +108,5 @@ struct TimetableHomeView: View {
         formatter.locale = Locale(identifier: "zh_CN")
         formatter.dateFormat = "EEE"
         return formatter.string(from: date)
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func settingsButtonStyle() -> some View {
-        if #available(iOS 26.0, *) {
-            self
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .tint(.secondary)
-        } else if #available(iOS 17.0, *) {
-            self
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.circle)
-                .tint(.secondary)
-        } else {
-            self
-                .buttonStyle(.bordered)
-                .tint(.secondary)
-                .clipShape(Circle())
-        }
     }
 }

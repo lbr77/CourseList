@@ -9,10 +9,44 @@
 /* Begin PBXBuildFile section */
 		A10000010000000000000001 /* WCDBSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A10000110000000000000001 /* WCDBSwift */; };
 		A10000010000000000000002 /* ConfigurableKit in Frameworks */ = {isa = PBXBuildFile; productRef = A10000110000000000000002 /* ConfigurableKit */; };
+		B20000010000000000000001 /* CourseListWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B20000020000000000000001 /* CourseListWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C30000010000000000000001 /* CourseListWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30000020000000000000001 /* CourseListWidget.swift */; };
+		C30000010000000000000002 /* CourseWidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30000020000000000000002 /* CourseWidgetSnapshot.swift */; };
+		C30000010000000000000003 /* CourseWidgetSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30000020000000000000003 /* CourseWidgetSnapshotStore.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B20000050000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 86C0527D2F6AC25300D62DDD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B20000070000000000000001;
+			remoteInfo = CourseListWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B20000040000000000000001 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B20000010000000000000001 /* CourseListWidgetExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		86C052852F6AC25300D62DDD /* CourseList.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CourseList.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20000020000000000000001 /* CourseListWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CourseListWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C30000020000000000000001 /* CourseListWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseListWidget.swift; sourceTree = "<group>"; };
+		C30000020000000000000002 /* CourseWidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseWidgetSnapshot.swift; sourceTree = "<group>"; };
+		C30000020000000000000003 /* CourseWidgetSnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseWidgetSnapshotStore.swift; sourceTree = "<group>"; };
+		C30000020000000000000004 /* CourseListWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CourseListWidgetExtension.entitlements; sourceTree = "<group>"; };
+		C30000020000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -33,6 +67,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B20000080000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -40,6 +81,7 @@
 			isa = PBXGroup;
 			children = (
 				86C052872F6AC25300D62DDD /* CourseList */,
+				B20000030000000000000001 /* CourseListWidgetExtension */,
 				86C052862F6AC25300D62DDD /* Products */,
 			);
 			sourceTree = "<group>";
@@ -48,8 +90,21 @@
 			isa = PBXGroup;
 			children = (
 				86C052852F6AC25300D62DDD /* CourseList.app */,
+				B20000020000000000000001 /* CourseListWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		B20000030000000000000001 /* CourseListWidgetExtension */ = {
+			isa = PBXGroup;
+			children = (
+				C30000020000000000000001 /* CourseListWidget.swift */,
+				C30000020000000000000002 /* CourseWidgetSnapshot.swift */,
+				C30000020000000000000003 /* CourseWidgetSnapshotStore.swift */,
+				C30000020000000000000005 /* Info.plist */,
+				C30000020000000000000004 /* CourseListWidgetExtension.entitlements */,
+			);
+			path = CourseListWidgetExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -62,10 +117,12 @@
 				86C052812F6AC25300D62DDD /* Sources */,
 				86C052822F6AC25300D62DDD /* Frameworks */,
 				86C052832F6AC25300D62DDD /* Resources */,
+				B20000040000000000000001 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B20000060000000000000001 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				86C052872F6AC25300D62DDD /* CourseList */,
@@ -79,6 +136,26 @@
 			productReference = 86C052852F6AC25300D62DDD /* CourseList.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B20000070000000000000001 /* CourseListWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B20000100000000000000001 /* Build configuration list for PBXNativeTarget "CourseListWidgetExtension" */;
+			buildPhases = (
+				B20000080000000000000001 /* Sources */,
+				B20000080000000000000002 /* Frameworks */,
+				B20000080000000000000003 /* Resources */,
+				C30000030000000000000001 /* Remove Widget Principal Class */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CourseListWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = CourseListWidgetExtension;
+			productReference = B20000020000000000000001 /* CourseListWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -90,6 +167,9 @@
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
 					86C052842F6AC25300D62DDD = {
+						CreatedOnToolsVersion = 26.1;
+					};
+					B20000070000000000000001 = {
 						CreatedOnToolsVersion = 26.1;
 					};
 				};
@@ -153,12 +233,20 @@
 			projectRoot = "";
 			targets = (
 				86C052842F6AC25300D62DDD /* CourseList */,
+				B20000070000000000000001 /* CourseListWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		86C052832F6AC25300D62DDD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B20000080000000000000003 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -175,7 +263,46 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B20000080000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C30000010000000000000001 /* CourseListWidget.swift in Sources */,
+				C30000010000000000000002 /* CourseWidgetSnapshot.swift in Sources */,
+				C30000010000000000000003 /* CourseWidgetSnapshotStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C30000030000000000000001 /* Remove Widget Principal Class */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Remove Widget Principal Class";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ -f \"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\" ]; then\n  /usr/libexec/PlistBuddy -c \"Delete :NSExtension:NSExtensionPrincipalClass\" \"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\" >/dev/null 2>&1 || true\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B20000060000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B20000070000000000000001 /* CourseListWidgetExtension */;
+			targetProxy = B20000050000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		86C0528E2F6AC25500D62DDD /* Debug */ = {
@@ -304,14 +431,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CourseList/CourseList.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HUAKL3MKPR;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "需要读取你的日历事件，用于导入为课表。";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "需要读取你的日历事件，用于导入为课表。";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -340,14 +468,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CourseList/CourseList.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HUAKL3MKPR;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "需要读取你的日历事件，用于导入为课表。";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "需要读取你的日历事件，用于导入为课表。";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -361,6 +490,66 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.nvme0n1p.CourseList;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B20000090000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = CourseListWidgetExtension/CourseListWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HUAKL3MKPR;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CourseListWidgetExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.nvme0n1p.CourseList.WidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B20000090000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = CourseListWidgetExtension/CourseListWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HUAKL3MKPR;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CourseListWidgetExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.nvme0n1p.CourseList.WidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -388,6 +577,15 @@
 			buildConfigurations = (
 				86C052912F6AC25500D62DDD /* Debug */,
 				86C052922F6AC25500D62DDD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B20000100000000000000001 /* Build configuration list for PBXNativeTarget "CourseListWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B20000090000000000000001 /* Debug */,
+				B20000090000000000000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

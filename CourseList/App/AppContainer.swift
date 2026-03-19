@@ -11,6 +11,7 @@ final class AppContainer: ObservableObject {
         if let repository {
             self.repository = repository
             isBootstrapping = false
+            CourseNotificationService.shared.start(repository: repository)
         } else {
             Task {
                 await bootstrapRepository()
@@ -26,6 +27,7 @@ final class AppContainer: ObservableObject {
             }.value
             self.repository = repository
             bootstrapError = nil
+            CourseNotificationService.shared.start(repository: repository)
         } catch {
             repository = nil
             bootstrapError = "数据库初始化失败：\(error.localizedDescription)"

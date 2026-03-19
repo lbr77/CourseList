@@ -15,7 +15,9 @@ final class TimetableManagementController: UIViewController {
 
     private var timetables: [Timetable] = []
     private var loadError: Error?
+    private var refreshError: Error?
     private var isLoading = true
+    private var isRefreshing = false
     private var hasLoadedOnce = false
     private var contentController: UIViewController?
 
@@ -64,30 +66,41 @@ final class TimetableManagementController: UIViewController {
         )
 
         render()
-        Task { await reloadData(showLoading: true) }
+        Task { await reloadData() }
     }
 
     @objc private func repositoryDidChange() {
         onRepositoryChanged()
-        Task { await reloadData(showLoading: false) }
+        Task { await reloadData() }
     }
 
-    private func reloadData(showLoading: Bool) async {
-        if showLoading || !hasLoadedOnce {
+    private func reloadData() async {
+        if !hasLoadedOnce {
             isLoading = true
             loadError = nil
+            refreshError = nil
+            render()
+        } else {
+            isRefreshing = true
+            refreshError = nil
             render()
         }
 
         do {
             timetables = try await repository.listTimetables().sorted { shouldDisplayTimetableBefore($0, $1) }
             loadError = nil
+            refreshError = nil
         } catch {
-            loadError = error
+            if hasLoadedOnce && !timetables.isEmpty {
+                refreshError = error
+            } else {
+                loadError = error
+            }
         }
 
         hasLoadedOnce = true
         isLoading = false
+        isRefreshing = false
         render()
     }
 
@@ -120,9 +133,9 @@ final class TimetableManagementController: UIViewController {
     private func makeManifest() -> ConfigurableManifest {
         var objects: [ConfigurableObject] = []
 
-        if isLoading {
+        if isLoading && !hasLoadedOnce {
             objects.append(loadingObject(text: "正在读取课表…"))
-        } else if let loadError {
+        } else if let loadError, timetables.isEmpty {
             objects.append(errorObject(error: loadError))
         } else {
 
@@ -211,16 +224,22 @@ final class TimetableManagementController: UIViewController {
             title: "读取失败",
             explain: error.localizedDescription,
             ephemeralAnnotation: .action { _ in
-                Task { await self.reloadData(showLoading: true) }
+                Task { await self.reloadData() }
             }
         )
     }
 
     private var footerText: String {
-        if isLoading {
+        if isLoading && !hasLoadedOnce {
             return "正在读取课表数据…"
         }
-        if loadError != nil {
+        if isRefreshing {
+            return "正在刷新课表数据…"
+        }
+        if let refreshError {
+            return "刷新失败：\(refreshError.localizedDescription)"
+        }
+        if loadError != nil && timetables.isEmpty {
             return "读取课表失败，点按上方条目可重试。"
         }
         if timetables.isEmpty {

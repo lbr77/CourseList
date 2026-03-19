@@ -523,7 +523,10 @@ private final class PeriodTemplatePickerController: ReloadableStackScrollControl
     private var templates: [PeriodTemplate] = []
     private var templatePeriods: [String: [TimetablePeriodInput]] = [:]
     private var loadError: Error?
+    private var refreshError: Error?
     private var isLoading = true
+    private var isRefreshing = false
+    private var hasLoadedOnce = false
 
     init(
         repository: TimetableRepositoryProtocol,
@@ -550,7 +553,7 @@ private final class PeriodTemplatePickerController: ReloadableStackScrollControl
     }
 
     override func buildContent() {
-        if isLoading {
+        if isLoading && !hasLoadedOnce {
             stackView.addArrangedSubviewWithMargin(
                 ConfigurableSectionFooterView().with(footer: "正在读取节次模板…")
             )
@@ -558,7 +561,7 @@ private final class PeriodTemplatePickerController: ReloadableStackScrollControl
             return
         }
 
-        if let loadError {
+        if let loadError, templates.isEmpty {
             stackView.addArrangedSubviewWithMargin(
                 ConfigurableSectionFooterView().with(footer: loadError.localizedDescription)
             )
@@ -598,15 +601,22 @@ private final class PeriodTemplatePickerController: ReloadableStackScrollControl
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionFooterView().with(footer: "选择模板后，会用模板节次覆盖当前课表的节次设置。")
+            ConfigurableSectionFooterView().with(footer: statusFooterText)
         )
         stackView.addArrangedSubviewWithMargin(UIView())
     }
 
     private func reloadData() async {
-        isLoading = true
-        loadError = nil
-        rebuildContent()
+        if !hasLoadedOnce {
+            isLoading = true
+            loadError = nil
+            refreshError = nil
+            rebuildContent()
+        } else {
+            isRefreshing = true
+            refreshError = nil
+            rebuildContent()
+        }
 
         do {
             let loadedTemplates = try await repository.listPeriodTemplates()
@@ -619,14 +629,32 @@ private final class PeriodTemplatePickerController: ReloadableStackScrollControl
             }
             templates = loadedTemplates
             templatePeriods = loadedPeriods
+            loadError = nil
+            refreshError = nil
         } catch {
-            templates = []
-            templatePeriods = [:]
-            loadError = error
+            if hasLoadedOnce && !templates.isEmpty {
+                refreshError = error
+            } else {
+                templates = []
+                templatePeriods = [:]
+                loadError = error
+            }
         }
 
+        hasLoadedOnce = true
         isLoading = false
+        isRefreshing = false
         rebuildContent()
+    }
+
+    private var statusFooterText: String {
+        if isRefreshing {
+            return "正在刷新模板列表…"
+        }
+        if let refreshError {
+            return "刷新失败：\(refreshError.localizedDescription)"
+        }
+        return "选择模板后，会用模板节次覆盖当前课表的节次设置。"
     }
 
     private func selectTemplate(_ template: PeriodTemplate) {
@@ -644,7 +672,10 @@ private final class CourseManagementController: ReloadableStackScrollController 
 
     private var courses: [CourseWithMeetings] = []
     private var loadError: Error?
+    private var refreshError: Error?
     private var isLoading = true
+    private var isRefreshing = false
+    private var hasLoadedOnce = false
 
     init(repository: TimetableRepositoryProtocol, timetableId: String) {
         self.repository = repository
@@ -666,7 +697,6 @@ private final class CourseManagementController: ReloadableStackScrollController 
             target: self,
             action: #selector(addCourseTapped)
         )
-        Task { await reloadData() }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -675,17 +705,19 @@ private final class CourseManagementController: ReloadableStackScrollController 
     }
 
     override func buildContent() {
-        if isLoading {
+        if isLoading && !hasLoadedOnce {
             stackView.addArrangedSubviewWithMargin(
                 ConfigurableSectionFooterView().with(footer: "正在加载课程…")
             )
+            stackView.addArrangedSubviewWithMargin(UIView())
             return
         }
 
-        if let loadError {
+        if let loadError, courses.isEmpty {
             stackView.addArrangedSubviewWithMargin(
                 ConfigurableSectionFooterView().with(footer: loadError.localizedDescription)
             )
+            stackView.addArrangedSubviewWithMargin(UIView())
             return
         }
 
@@ -711,6 +743,10 @@ private final class CourseManagementController: ReloadableStackScrollController 
             ) { $0.top /= 2 }
         }
 
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionFooterView().with(footer: statusFooterText)
+        ) { $0.top /= 2 }
+        stackView.addArrangedSubview(SeparatorView())
         stackView.addArrangedSubviewWithMargin(UIView())
     }
 
@@ -729,26 +765,50 @@ private final class CourseManagementController: ReloadableStackScrollController 
             repository: repository,
             courseId: courseId,
             timetableId: timetableId,
-            onFinished: { [weak self, weak controller] in
+            onFinished: { [weak controller] in
                 controller?.dismiss(animated: true)
-                Task { await self?.reloadData() }
             }
         )
         controller?.present(editor, animated: true)
     }
 
     private func reloadData() async {
-        isLoading = true
-        loadError = nil
-        rebuildContent()
+        if !hasLoadedOnce {
+            isLoading = true
+            loadError = nil
+            refreshError = nil
+            rebuildContent()
+        } else {
+            isRefreshing = true
+            refreshError = nil
+            rebuildContent()
+        }
         do {
             courses = try await repository.listCourses(timetableId: timetableId)
+            loadError = nil
+            refreshError = nil
         } catch {
-            courses = []
-            loadError = error
+            if hasLoadedOnce && !courses.isEmpty {
+                refreshError = error
+            } else {
+                courses = []
+                loadError = error
+            }
         }
+        hasLoadedOnce = true
         isLoading = false
+        isRefreshing = false
         rebuildContent()
+    }
+
+    private var statusFooterText: String {
+        if isRefreshing {
+            return "正在刷新课程列表…"
+        }
+        if let refreshError {
+            return "刷新失败：\(refreshError.localizedDescription)"
+        }
+        return "课程修改后会立即生效到课表展示。"
     }
 }
 

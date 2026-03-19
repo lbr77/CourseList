@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 
 enum TimetablePhase {
     case current
@@ -43,6 +44,320 @@ enum TimetableWeekStart: Int, CaseIterable {
 
 extension Notification.Name {
     static let timetableAppearanceDidChange = Notification.Name("CourseList.timetableAppearanceDidChange")
+    static let courseNotificationSettingsDidChange = Notification.Name("CourseList.courseNotificationSettingsDidChange")
+}
+
+private enum CourseNotificationDefaultsKey {
+    static let isEnabled = "courseNotifications.isEnabled"
+    static let leadMinutes = "courseNotifications.leadMinutes"
+    static let firstRequestAttempted = "courseNotifications.firstRequestAttempted"
+}
+
+let courseNotificationLeadMinuteOptions = Array(stride(from: 60, through: 10, by: -10))
+
+func loadCourseNotificationEnabled(defaults: UserDefaults = .standard) -> Bool {
+    defaults.object(forKey: CourseNotificationDefaultsKey.isEnabled) as? Bool ?? true
+}
+
+func saveCourseNotificationEnabled(_ isEnabled: Bool, defaults: UserDefaults = .standard) {
+    defaults.set(isEnabled, forKey: CourseNotificationDefaultsKey.isEnabled)
+}
+
+func loadCourseNotificationLeadMinutes(defaults: UserDefaults = .standard) -> Int {
+    normalizeCourseNotificationLeadMinutes(
+        defaults.object(forKey: CourseNotificationDefaultsKey.leadMinutes) as? Int
+            ?? courseNotificationLeadMinuteOptions.last
+            ?? 10
+    )
+}
+
+func saveCourseNotificationLeadMinutes(_ minutes: Int, defaults: UserDefaults = .standard) {
+    defaults.set(normalizeCourseNotificationLeadMinutes(minutes), forKey: CourseNotificationDefaultsKey.leadMinutes)
+}
+
+func normalizeCourseNotificationLeadMinutes(_ minutes: Int) -> Int {
+    if courseNotificationLeadMinuteOptions.contains(minutes) {
+        return minutes
+    }
+    return courseNotificationLeadMinuteOptions.last ?? 10
+}
+
+@MainActor
+final class CourseNotificationService {
+    static let shared = CourseNotificationService()
+
+    private let center: UNUserNotificationCenter
+    private var repository: (any TimetableRepositoryProtocol)?
+    private var observers: [NSObjectProtocol] = []
+    private var started = false
+
+    private let identifierPrefix = "course.reminder."
+
+    private init(center: UNUserNotificationCenter = .current()) {
+        self.center = center
+    }
+
+    func start(repository: any TimetableRepositoryProtocol) {
+        self.repository = repository
+        if !started {
+            started = true
+            installObservers()
+        }
+
+        Task {
+            await requestAuthorizationOnFirstLaunchIfNeeded()
+            await syncNow()
+        }
+    }
+
+    func syncNow(repository: (any TimetableRepositoryProtocol)? = nil) async {
+        if let repository {
+            self.repository = repository
+        }
+        let activeRepository = repository ?? self.repository
+
+        guard loadCourseNotificationEnabled() else {
+            await clearCourseNotifications()
+            return
+        }
+
+        let status = await authorizationStatus()
+        guard Self.isAuthorizationGranted(status) else {
+            await clearCourseNotifications()
+            return
+        }
+
+        guard let activeRepository else { return }
+
+        do {
+            let requests = try await buildRequests(repository: activeRepository)
+            await clearCourseNotifications()
+            for request in requests {
+                try await addNotificationRequest(request)
+            }
+        } catch {
+            return
+        }
+    }
+
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        let settings = await notificationSettings()
+        return settings.authorizationStatus
+    }
+
+    private func installObservers() {
+        let center = NotificationCenter.default
+        observers.append(
+            center.addObserver(forName: .timetableRepositoryDidChange, object: nil, queue: .main) { [weak self] _ in
+                Task { await self?.syncNow() }
+            }
+        )
+        observers.append(
+            center.addObserver(forName: .courseNotificationSettingsDidChange, object: nil, queue: .main) { [weak self] _ in
+                Task { await self?.syncNow() }
+            }
+        )
+    }
+
+    private func requestAuthorizationOnFirstLaunchIfNeeded(defaults: UserDefaults = .standard) async {
+        guard defaults.bool(forKey: CourseNotificationDefaultsKey.firstRequestAttempted) == false else {
+            return
+        }
+
+        defaults.set(true, forKey: CourseNotificationDefaultsKey.firstRequestAttempted)
+        let granted = await requestAuthorization()
+        guard granted else { return }
+
+        await syncNow()
+    }
+
+    private func buildRequests(repository: any TimetableRepositoryProtocol) async throws -> [UNNotificationRequest] {
+        let timetables = try await repository.listTimetables()
+        let leadMinutes = loadCourseNotificationLeadMinutes()
+        let leadSeconds = TimeInterval(leadMinutes * 60)
+        let now = Date()
+        let calendar = Calendar(identifier: .gregorian)
+
+        struct PendingCourseReminder {
+            let date: Date
+            let request: UNNotificationRequest
+        }
+
+        var reminders: [PendingCourseReminder] = []
+
+        for timetable in timetables {
+            guard let parsedStartDate = parseDateInput(timetable.startDate) else { continue }
+            let timetableStartDay = calendar.startOfDay(for: parsedStartDate)
+
+            async let periodsTask = repository.listPeriods(timetableId: timetable.id)
+            async let coursesTask = repository.listCourses(timetableId: timetable.id)
+            let periods = try await periodsTask
+            let courses = try await coursesTask
+            let periodMap = Dictionary(uniqueKeysWithValues: periods.map { ($0.periodIndex, $0) })
+
+            for course in courses {
+                for meeting in course.meetings {
+                    guard meeting.startWeek <= meeting.endWeek else { continue }
+                    guard let period = periodMap[meeting.startPeriod] else { continue }
+                    guard let startHourMinute = parseTimeInput(period.startTime) else { continue }
+                    let timeComponents = calendar.dateComponents([.hour, .minute], from: startHourMinute)
+                    guard let hour = timeComponents.hour, let minute = timeComponents.minute else { continue }
+
+                    for week in meeting.startWeek ... meeting.endWeek {
+                        guard weekMatchesType(week, weekType: meeting.weekType) else { continue }
+                        guard let classStartDate = makeCourseStartDate(
+                            timetableStartDay: timetableStartDay,
+                            week: week,
+                            weekday: meeting.weekday,
+                            hour: hour,
+                            minute: minute,
+                            calendar: calendar
+                        ) else { continue }
+
+                        let reminderDate = classStartDate.addingTimeInterval(-leadSeconds)
+                        guard reminderDate > now else { continue }
+
+                        let triggerDateComponents = calendar.dateComponents(
+                            [.year, .month, .day, .hour, .minute],
+                            from: reminderDate
+                        )
+                        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDateComponents, repeats: false)
+
+                        let content = UNMutableNotificationContent()
+                        content.title = "\(course.name) 即将开始"
+                        content.body = buildReminderBody(timetable: timetable, course: course, meeting: meeting)
+                        content.sound = .default
+
+                        let identifier = identifierPrefix + [timetable.id, course.id, meeting.id, String(week)].joined(separator: ".")
+                        reminders.append(
+                            PendingCourseReminder(
+                                date: reminderDate,
+                                request: UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        reminders.sort { $0.date < $1.date }
+        return reminders.map(\.request)
+    }
+
+    private func makeCourseStartDate(
+        timetableStartDay: Date,
+        week: Int,
+        weekday: Int,
+        hour: Int,
+        minute: Int,
+        calendar: Calendar
+    ) -> Date? {
+        guard (1 ... 7).contains(weekday), week >= 1 else { return nil }
+        guard let date = calendar.date(byAdding: .day, value: (week - 1) * 7 + (weekday - 1), to: timetableStartDay) else {
+            return nil
+        }
+
+        var components = calendar.dateComponents([.year, .month, .day], from: date)
+        components.hour = hour
+        components.minute = minute
+        components.second = 0
+        return calendar.date(from: components)
+    }
+
+    private func buildReminderBody(timetable: Timetable, course: CourseWithMeetings, meeting: CourseMeeting) -> String {
+        let periodText: String
+        if meeting.startPeriod == meeting.endPeriod {
+            periodText = "第\(meeting.startPeriod)节"
+        } else {
+            periodText = "第\(meeting.startPeriod)-\(meeting.endPeriod)节"
+        }
+
+        var parts = [
+            timetable.name,
+            "\(weekdayTitle(meeting.weekday)) \(periodText)",
+        ]
+
+        if let location = normalizeOptionalText(meeting.location ?? course.location) {
+            parts.append(location)
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func weekdayTitle(_ weekday: Int) -> String {
+        switch weekday {
+        case 1: return "周一"
+        case 2: return "周二"
+        case 3: return "周三"
+        case 4: return "周四"
+        case 5: return "周五"
+        case 6: return "周六"
+        case 7: return "周日"
+        default: return "周一"
+        }
+    }
+
+    private func clearCourseNotifications() async {
+        let pending = await pendingRequests()
+        let delivered = await deliveredNotifications()
+
+        let pendingIDs = pending.map(\.identifier).filter { $0.hasPrefix(identifierPrefix) }
+        let deliveredIDs = delivered.map(\.request.identifier).filter { $0.hasPrefix(identifierPrefix) }
+
+        if !pendingIDs.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: pendingIDs)
+        }
+        if !deliveredIDs.isEmpty {
+            center.removeDeliveredNotifications(withIdentifiers: deliveredIDs)
+        }
+    }
+
+    private func pendingRequests() async -> [UNNotificationRequest] {
+        await withCheckedContinuation { continuation in
+            center.getPendingNotificationRequests { requests in
+                continuation.resume(returning: requests)
+            }
+        }
+    }
+
+    private func deliveredNotifications() async -> [UNNotification] {
+        await withCheckedContinuation { continuation in
+            center.getDeliveredNotifications { notifications in
+                continuation.resume(returning: notifications)
+            }
+        }
+    }
+
+    private func notificationSettings() async -> UNNotificationSettings {
+        await withCheckedContinuation { continuation in
+            center.getNotificationSettings { settings in
+                continuation.resume(returning: settings)
+            }
+        }
+    }
+
+    private func requestAuthorization() async -> Bool {
+        await withCheckedContinuation { continuation in
+            center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+                continuation.resume(returning: granted)
+            }
+        }
+    }
+
+    private func addNotificationRequest(_ request: UNNotificationRequest) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            center.add(request) { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                continuation.resume(returning: ())
+            }
+        }
+    }
+
+    private static func isAuthorizationGranted(_ status: UNAuthorizationStatus) -> Bool {
+        status == .authorized || status == .provisional || status == .ephemeral
+    }
 }
 
 func loadTimetableVisibleHourRange(defaults: UserDefaults = .standard) -> TimetableVisibleHourRange {

@@ -1,6 +1,7 @@
 import ConfigurableKit
 import SwiftUI
 import UIKit
+import UserNotifications
 
 struct SettingsConfigurableView: UIViewControllerRepresentable {
     let repository: any TimetableRepositoryProtocol
@@ -79,10 +80,7 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
                     title: "权限管理",
                     explain: "通知、日历等系统权限",
                     ephemeralAnnotation: .page {
-                        UIHostingController(rootView: PlaceholderSettingsPageView(
-                            title: "权限管理",
-                            description: "这里后续放通知、日历与其它系统权限管理。"
-                        ))
+                        NotificationPermissionSettingsController(repository: repository)
                     }
                 ),
                 ConfigurableObject(
@@ -115,21 +113,6 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
 
     private var footerText: String {
         "版本 \(appVersion)(\(appBuild))"
-    }
-}
-
-private struct PlaceholderSettingsPageView: View {
-    let title: String
-    let description: String
-
-    var body: some View {
-        List {
-            Section {
-                Text(description)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .navigationTitle(title)
     }
 }
 
@@ -352,12 +335,186 @@ private final class TimetableAppearanceSettingsController: SettingsReloadableSta
 }
 
 @MainActor
+private final class NotificationPermissionSettingsController: SettingsReloadableStackScrollController {
+    private let repository: any TimetableRepositoryProtocol
+
+    private var isNotificationEnabled = loadCourseNotificationEnabled()
+    private var leadMinutes = loadCourseNotificationLeadMinutes()
+    private var authorizationStatus: UNAuthorizationStatus = .notDetermined
+
+    init(repository: any TimetableRepositoryProtocol) {
+        self.repository = repository
+        super.init(nibName: nil, bundle: nil)
+        title = "权限管理"
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        isNotificationEnabled = loadCourseNotificationEnabled()
+        leadMinutes = loadCourseNotificationLeadMinutes()
+        rebuildContent()
+
+        Task { [weak self] in
+            guard let self else { return }
+            authorizationStatus = await CourseNotificationService.shared.authorizationStatus()
+            rebuildContent()
+        }
+    }
+
+    override func buildContent() {
+        appendSwitchField(
+            icon: "bell.badge",
+            title: "课程提醒",
+            description: "上课前发送系统通知",
+            isOn: isNotificationEnabled
+        ) { [weak self] isOn in
+            self?.updateNotificationEnabled(isOn)
+        }
+
+        appendEditableField(
+            icon: "timer",
+            title: "提前通知",
+            description: "课程开始前多久提醒",
+            value: "\(leadMinutes) 分钟前",
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentLeadMinutesPicker(from: view)
+        }
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionFooterView().with(footer: authorizationDescription)
+        )
+        stackView.addArrangedSubviewWithMargin(UIView())
+    }
+
+    private func presentLeadMinutesPicker(from view: UIView) {
+        let options = courseNotificationLeadMinuteOptions
+        let selectedIndex = options.firstIndex(of: leadMinutes) ?? max(0, options.count - 1)
+        let picker = SettingsAlertOptionPickerViewController(
+            title: "提前通知",
+            message: "选择课程开始前的提醒时间。",
+            options: options.map { "\($0) 分钟前" },
+            selectedIndex: selectedIndex
+        ) { [weak self] selectedIndex in
+            guard let self else { return }
+            updateLeadMinutes(options[selectedIndex])
+        }
+        view.hostingViewController?.present(picker, animated: true)
+    }
+
+    private func updateNotificationEnabled(_ enabled: Bool) {
+        guard enabled != isNotificationEnabled else { return }
+        isNotificationEnabled = enabled
+        saveCourseNotificationEnabled(enabled)
+        triggerNotificationSync()
+        rebuildContent()
+    }
+
+    private func updateLeadMinutes(_ minutes: Int) {
+        let normalized = normalizeCourseNotificationLeadMinutes(minutes)
+        guard normalized != leadMinutes else { return }
+        leadMinutes = normalized
+        saveCourseNotificationLeadMinutes(normalized)
+        triggerNotificationSync()
+        rebuildContent()
+    }
+
+    private func triggerNotificationSync() {
+        NotificationCenter.default.post(name: .courseNotificationSettingsDidChange, object: nil)
+        Task { await CourseNotificationService.shared.syncNow(repository: repository) }
+    }
+
+    private var authorizationDescription: String {
+        let statusText: String
+        switch authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            statusText = "系统通知权限：已授权。"
+        case .denied:
+            statusText = "系统通知权限：已拒绝。应用不会再次弹窗申请，请到系统设置手动开启。"
+        case .notDetermined:
+            statusText = "系统通知权限：尚未决定。应用只会在首次运行时尝试申请一次。"
+        @unknown default:
+            statusText = "系统通知权限状态未知。"
+        }
+
+        let previewText = isNotificationEnabled ? "当前课程提醒已开启，提前 \(leadMinutes) 分钟。" : "当前课程提醒已关闭。"
+        return "\(statusText)\n\(previewText)"
+    }
+
+    private func appendSwitchField(icon: String, title: String, description: String?, isOn: Bool, onToggle: @escaping (Bool) -> Void) {
+        let view = SettingsSwitchFieldView()
+        view.configure(icon: UIImage(systemName: icon))
+        view.configure(title: title)
+        view.configure(description: description ?? "")
+        view.configure(isOn: isOn, onToggle: onToggle)
+        stackView.addArrangedSubviewWithMargin(view)
+        stackView.addArrangedSubview(SeparatorView())
+    }
+
+    private func appendEditableField(icon: String, title: String, description: String?, value: String, placeholder: String, tap: @escaping (ConfigurableInfoView) -> Void) {
+        let view = ConfigurableInfoView()
+        view.configure(icon: UIImage(systemName: icon))
+        view.configure(title: title)
+        view.configure(description: description ?? "")
+        view.configure(value: value.isEmpty ? placeholder : value)
+        view.setTapBlock(tap)
+        stackView.addArrangedSubviewWithMargin(view)
+        stackView.addArrangedSubview(SeparatorView())
+    }
+
+}
+
+private final class SettingsSwitchFieldView: ConfigurableView {
+    private var onToggle: ((Bool) -> Void)?
+    private var isUpdatingProgrammatically = false
+
+    private var switchView: UISwitch {
+        contentView as! UISwitch
+    }
+
+    override init() {
+        super.init()
+        switchView.onTintColor = AlertControllerConfiguration.accentColor
+        switchView.addTarget(self, action: #selector(switchValueChanged), for: .valueChanged)
+    }
+
+    @available(*, unavailable)
+    required init(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override class func createContentView() -> UIView {
+        UISwitch()
+    }
+
+    func configure(isOn: Bool, onToggle: @escaping (Bool) -> Void) {
+        self.onToggle = onToggle
+        isUpdatingProgrammatically = true
+        switchView.setOn(isOn, animated: false)
+        isUpdatingProgrammatically = false
+    }
+
+    @objc private func switchValueChanged() {
+        guard !isUpdatingProgrammatically else { return }
+        onToggle?(switchView.isOn)
+    }
+}
+
+@MainActor
 private final class PeriodTemplateManagementController: SettingsReloadableStackScrollController {
     private let repository: any TimetableRepositoryProtocol
 
     private var templates: [PeriodTemplate] = []
     private var loadError: Error?
+    private var refreshError: Error?
     private var isLoading = true
+    private var isRefreshing = false
+    private var hasLoadedOnce = false
 
     init(repository: any TimetableRepositoryProtocol) {
         self.repository = repository
@@ -386,7 +543,7 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
     }
 
     override func buildContent() {
-        if isLoading {
+        if isLoading && !hasLoadedOnce {
             stackView.addArrangedSubviewWithMargin(
                 ConfigurableSectionFooterView().with(footer: "正在读取节次模板…")
             )
@@ -394,7 +551,7 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
             return
         }
 
-        if let loadError {
+        if let loadError, templates.isEmpty {
             stackView.addArrangedSubviewWithMargin(
                 ConfigurableSectionFooterView().with(footer: loadError.localizedDescription)
             )
@@ -426,7 +583,7 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionFooterView().with(footer: "默认模板会用于新建课表的初始节次；现有课表不会自动变更。")
+            ConfigurableSectionFooterView().with(footer: statusFooterText)
         )
         stackView.addArrangedSubviewWithMargin(UIView())
     }
@@ -451,17 +608,42 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
     }
 
     private func reloadData() async {
-        isLoading = true
-        loadError = nil
-        rebuildContent()
+        if !hasLoadedOnce {
+            isLoading = true
+            loadError = nil
+            refreshError = nil
+            rebuildContent()
+        } else {
+            isRefreshing = true
+            refreshError = nil
+            rebuildContent()
+        }
         do {
             templates = try await repository.listPeriodTemplates()
+            loadError = nil
+            refreshError = nil
         } catch {
-            templates = []
-            loadError = error
+            if hasLoadedOnce && !templates.isEmpty {
+                refreshError = error
+            } else {
+                templates = []
+                loadError = error
+            }
         }
+        hasLoadedOnce = true
         isLoading = false
+        isRefreshing = false
         rebuildContent()
+    }
+
+    private var statusFooterText: String {
+        if isRefreshing {
+            return "正在刷新节次模板…"
+        }
+        if let refreshError {
+            return "刷新失败：\(refreshError.localizedDescription)"
+        }
+        return "默认模板会用于新建课表的初始节次；现有课表不会自动变更。"
     }
 }
 

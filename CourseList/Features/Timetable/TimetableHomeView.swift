@@ -63,6 +63,11 @@ struct TimetableHomeView: View {
 
             Spacer(minLength: 12)
 
+            if viewModel.isLoading {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
             if !isCurrentWeek {
                 Button("回到本周") {
                     scrollToCurrentWeekToken += 1

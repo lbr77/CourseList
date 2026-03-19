@@ -33,7 +33,10 @@ private final class CoursePreviewController: UIViewController {
     private var timetable: Timetable?
     private var periods: [TimetablePeriod] = []
     private var loadError: Error?
+    private var refreshError: Error?
     private var isLoading = true
+    private var isRefreshing = false
+    private var hasLoadedOnce = false
     private var contentController: UIViewController?
 
     init(
@@ -81,10 +84,19 @@ private final class CoursePreviewController: UIViewController {
 
     private func reloadData(showLoading: Bool) async {
         if showLoading {
-            isLoading = true
-            loadError = nil
+            if hasLoadedOnce {
+                isRefreshing = true
+                refreshError = nil
+            } else {
+                isLoading = true
+                loadError = nil
+            }
             render()
         }
+
+        let previousCourse = course
+        let previousTimetable = timetable
+        let previousPeriods = periods
 
         do {
             guard let loadedCourse = try await repository.getCourse(courseId: courseId) else {
@@ -101,20 +113,30 @@ private final class CoursePreviewController: UIViewController {
             periods = loadedPeriods
             timetable = timetables.first(where: { $0.id == loadedCourse.timetableId })
             loadError = nil
+            refreshError = nil
         } catch {
-            course = nil
-            periods = []
-            timetable = nil
-            loadError = error
+            if previousCourse != nil {
+                course = previousCourse
+                periods = previousPeriods
+                timetable = previousTimetable
+                refreshError = error
+            } else {
+                course = nil
+                periods = []
+                timetable = nil
+                loadError = error
+            }
         }
 
+        hasLoadedOnce = true
         isLoading = false
+        isRefreshing = false
         render()
     }
 
     private func render() {
         title = course?.name ?? "课程预览"
-        navigationItem.rightBarButtonItem?.isEnabled = course != nil && !isLoading && loadError == nil
+        navigationItem.rightBarButtonItem?.isEnabled = course != nil && !isLoading && !isRefreshing && loadError == nil
 
         let controller = ConfigurableViewController(manifest: makeManifest())
         controller.title = title
@@ -142,7 +164,7 @@ private final class CoursePreviewController: UIViewController {
     }
 
     private func makeManifest() -> ConfigurableManifest {
-        if isLoading {
+        if isLoading && !hasLoadedOnce {
             return ConfigurableManifest(
                 title: "课程预览",
                 list: [loadingObject(text: "正在读取课程…")],
@@ -150,11 +172,11 @@ private final class CoursePreviewController: UIViewController {
             )
         }
 
-        if let loadError {
+        if let loadError, course == nil {
             return ConfigurableManifest(
                 title: "课程预览",
                 list: [errorObject(error: loadError)],
-                footer: "点按上方条目可重试。"
+                footer: statusFooterText
             )
         }
 
@@ -162,7 +184,7 @@ private final class CoursePreviewController: UIViewController {
             return ConfigurableManifest(
                 title: "课程预览",
                 list: [infoObject(text: "课程不存在，可能已被删除。")],
-                footer: "请返回课表页刷新后重试。"
+                footer: statusFooterText
             )
         }
 
@@ -214,7 +236,7 @@ private final class CoursePreviewController: UIViewController {
         return ConfigurableManifest(
             title: course.name,
             list: objects,
-            footer: "共 \(course.meetings.count) 条上课时间"
+            footer: statusFooterText
         )
     }
 
@@ -307,6 +329,22 @@ private final class CoursePreviewController: UIViewController {
                 Task { await self.reloadData(showLoading: true) }
             }
         )
+    }
+
+    private var statusFooterText: String {
+        if isRefreshing {
+            return "正在刷新课程数据…"
+        }
+        if let refreshError {
+            return "刷新失败：\(refreshError.localizedDescription)"
+        }
+        if let loadError, course == nil {
+            return "点按上方条目可重试。"
+        }
+        if let course {
+            return "共 \(course.meetings.count) 条上课时间"
+        }
+        return "请返回课表页刷新后重试。"
     }
 
     private func weekdayLabel(_ weekday: Int) -> String {

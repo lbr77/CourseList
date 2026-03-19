@@ -26,7 +26,7 @@ final class TimetableHomeViewModel: ObservableObject {
         do {
             errorMessage = nil
             let timetables = try await repository.listTimetables()
-            let timetable = try await repository.getActiveTimetable() ?? resolvePreferredTimetable(timetables: timetables)
+            let timetable = resolveCurrentTimetable(timetables: timetables)
             currentTimetable = timetable
 
             guard let timetable else {
@@ -67,6 +67,19 @@ final class TimetableHomeViewModel: ObservableObject {
         await ensureWeekLoaded(targetWeek)
         schedule = weekSchedule(for: targetWeek)
         await preloadWeeks(around: targetWeek)
+    }
+
+    func goToDate(_ date: Date) async {
+        guard let currentTimetable,
+              let week = timetableWeek(for: date, timetable: currentTimetable)
+        else {
+            return
+        }
+        if week == currentWeek, schedule.week == week {
+            return
+        }
+
+        await goToWeek(week)
     }
 
     private func ensureWeekLoaded(_ week: Int) async {

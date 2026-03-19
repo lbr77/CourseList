@@ -4,19 +4,36 @@ import UIKit
 import WebKit
 
 @MainActor
-final class ImportBrowserController: UIViewController, WKNavigationDelegate {
+final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKUIDelegate, UITextFieldDelegate {
     private let viewModel: ImportViewModel
     private let onImported: () -> Void
     private var cancellables: Set<AnyCancellable> = []
 
-    private let headerView = UIView()
-    private let closeButton = BrowserHeaderButton(systemName: "xmark", tintColor: .systemRed)
-    private let titleBadgeView = UIView()
-    private let titleLabel = UILabel()
-    private let confirmButton = BrowserHeaderButton(systemName: "checkmark", tintColor: .systemGreen)
-
-    private let controlsContainer = UIView()
-    private let controlsStackView = UIStackView()
+    private lazy var closeItem = UIBarButtonItem(
+        barButtonSystemItem: .close,
+        target: self,
+        action: #selector(closeTapped)
+    )
+    private lazy var primaryItem = UIBarButtonItem(
+        title: "识别",
+        style: .done,
+        target: self,
+        action: #selector(primaryTapped)
+    )
+    private lazy var backItem = UIBarButtonItem(
+        image: UIImage(systemName: "chevron.backward"),
+        style: .plain,
+        target: self,
+        action: #selector(backTapped)
+    )
+    private lazy var reloadItem = UIBarButtonItem(
+        barButtonSystemItem: .refresh,
+        target: self,
+        action: #selector(reloadTapped)
+    )
+    private let addressField = UITextField()
+    private lazy var addressItem = UIBarButtonItem(customView: addressField)
+    private var addressWidthConstraint: NSLayoutConstraint?
 
     private let webContainerView = UIView()
     private let webView: WKWebView = {
@@ -42,36 +59,37 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
+        setupNavigation()
         setupLayout()
-        setupHeader()
+        setupToolbar()
         setupWebView()
         setupBindings()
-        rebuildControls()
         rebuildStatus()
-        updateConfirmButtonState()
+        updateNavigationState()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setToolbarHidden(false, animated: animated)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        if navigationController?.viewControllers.first != self {
+            navigationController?.setToolbarHidden(true, animated: animated)
+        }
     }
 
     private func setupLayout() {
-        [headerView, controlsContainer, webContainerView, statusScrollView].forEach {
+        [webContainerView, statusScrollView].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
 
-        headerView.setContentHuggingPriority(.required, for: .vertical)
-        controlsContainer.setContentHuggingPriority(.required, for: .vertical)
         statusScrollView.setContentHuggingPriority(.required, for: .vertical)
         statusScrollView.setContentCompressionResistancePriority(.required, for: .vertical)
 
-        controlsStackView.axis = .vertical
-        controlsStackView.spacing = 0
-        controlsStackView.translatesAutoresizingMaskIntoConstraints = false
-        controlsContainer.addSubview(controlsStackView)
-
         webContainerView.backgroundColor = .secondarySystemBackground
-        webContainerView.layer.cornerRadius = 20
-        webContainerView.layer.cornerCurve = .continuous
-        webContainerView.layer.borderWidth = 1
-        webContainerView.layer.borderColor = UIColor.separator.cgColor
         webContainerView.clipsToBounds = true
         webContainerView.translatesAutoresizingMaskIntoConstraints = false
         webContainerView.addSubview(webView)
@@ -87,23 +105,9 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
         statusContentView.addSubview(statusStackView)
 
         NSLayoutConstraint.activate([
-            headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            headerView.heightAnchor.constraint(equalToConstant: 40),
-
-            controlsContainer.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 8),
-            controlsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            controlsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-
-            controlsStackView.topAnchor.constraint(equalTo: controlsContainer.topAnchor),
-            controlsStackView.leadingAnchor.constraint(equalTo: controlsContainer.leadingAnchor),
-            controlsStackView.trailingAnchor.constraint(equalTo: controlsContainer.trailingAnchor),
-            controlsStackView.bottomAnchor.constraint(equalTo: controlsContainer.bottomAnchor),
-
-            webContainerView.topAnchor.constraint(equalTo: controlsContainer.bottomAnchor, constant: 8),
-            webContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
-            webContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            webContainerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            webContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            webContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             webContainerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 300),
 
             webView.topAnchor.constraint(equalTo: webContainerView.topAnchor),
@@ -111,7 +115,7 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
             webView.trailingAnchor.constraint(equalTo: webContainerView.trailingAnchor),
             webView.bottomAnchor.constraint(equalTo: webContainerView.bottomAnchor),
 
-            statusScrollView.topAnchor.constraint(equalTo: webContainerView.bottomAnchor, constant: 8),
+            statusScrollView.topAnchor.constraint(equalTo: webContainerView.bottomAnchor),
             statusScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             statusScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             statusScrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
@@ -130,57 +134,39 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
         ])
     }
 
-    private func setupHeader() {
-        [closeButton, titleBadgeView, confirmButton].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            headerView.addSubview($0)
-        }
+    private func setupNavigation() {
+        navigationItem.title = viewModel.school.label
+        navigationItem.largeTitleDisplayMode = .never
+        navigationItem.leftBarButtonItem = closeItem
+        navigationItem.rightBarButtonItem = primaryItem
+    }
 
-        titleBadgeView.backgroundColor = .secondarySystemBackground
-        titleBadgeView.layer.cornerRadius = 14
-        titleBadgeView.layer.cornerCurve = .continuous
-        titleBadgeView.layer.borderWidth = 1
-        titleBadgeView.layer.borderColor = UIColor.separator.cgColor
+    private func setupToolbar() {
+        addressField.borderStyle = .roundedRect
+        addressField.placeholder = "https://"
+        addressField.returnKeyType = .go
+        addressField.clearButtonMode = .whileEditing
+        addressField.keyboardType = .URL
+        addressField.autocapitalizationType = .none
+        addressField.autocorrectionType = .no
+        addressField.delegate = self
+        addressField.text = viewModel.sourceURL
+        addressField.translatesAutoresizingMaskIntoConstraints = false
+        addressWidthConstraint = addressField.widthAnchor.constraint(equalToConstant: 220)
+        addressWidthConstraint?.isActive = true
 
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.text = viewModel.school.label
-        titleLabel.textAlignment = .center
-        titleLabel.font = .systemFont(
-            ofSize: UIFont.preferredFont(forTextStyle: .headline).pointSize,
-            weight: .semibold
-        )
-        titleLabel.textColor = .label
-        titleLabel.adjustsFontSizeToFitWidth = true
-        titleLabel.minimumScaleFactor = 0.75
-        titleBadgeView.addSubview(titleLabel)
-
-        closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
-        confirmButton.addTarget(self, action: #selector(primaryTapped), for: .touchUpInside)
-
-        NSLayoutConstraint.activate([
-            closeButton.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
-            closeButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            closeButton.widthAnchor.constraint(equalToConstant: 36),
-            closeButton.heightAnchor.constraint(equalToConstant: 36),
-
-            confirmButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
-            confirmButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            confirmButton.widthAnchor.constraint(equalToConstant: 36),
-            confirmButton.heightAnchor.constraint(equalToConstant: 36),
-
-            titleBadgeView.leadingAnchor.constraint(equalTo: closeButton.trailingAnchor, constant: 16),
-            titleBadgeView.trailingAnchor.constraint(equalTo: confirmButton.leadingAnchor, constant: -16),
-            titleBadgeView.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            titleBadgeView.heightAnchor.constraint(equalToConstant: 40),
-
-            titleLabel.leadingAnchor.constraint(equalTo: titleBadgeView.leadingAnchor, constant: 14),
-            titleLabel.trailingAnchor.constraint(equalTo: titleBadgeView.trailingAnchor, constant: -14),
-            titleLabel.centerYAnchor.constraint(equalTo: titleBadgeView.centerYAnchor),
-        ])
+        toolbarItems = [
+            backItem,
+            UIBarButtonItem.flexibleSpace(),
+            reloadItem,
+            UIBarButtonItem.flexibleSpace(),
+            addressItem,
+        ]
     }
 
     private func setupWebView() {
         webView.navigationDelegate = self
+        webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = true
         viewModel.proxy.webView = webView
         if let url = URL(string: viewModel.school.defaultImportURL) {
@@ -193,7 +179,7 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
             .combineLatest(viewModel.$pageTitle, viewModel.$canGoBack)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _, _, _ in
-                self?.rebuildControls()
+                self?.updateNavigationState()
             }
             .store(in: &cancellables)
 
@@ -201,7 +187,7 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _, _, _, _ in
                 self?.rebuildStatus()
-                self?.updateConfirmButtonState()
+                self?.updateNavigationState()
             }
             .store(in: &cancellables)
 
@@ -209,81 +195,9 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.rebuildStatus()
-                self?.updateConfirmButtonState()
+                self?.updateNavigationState()
             }
             .store(in: &cancellables)
-    }
-
-    private func rebuildControls() {
-        clearArrangedSubviews(in: controlsStackView)
-
-        controlsStackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "浏览器")
-        ) { $0.bottom /= 2 }
-        controlsStackView.addArrangedSubview(SeparatorView())
-
-        let pageTitleView = ConfigurableInfoView()
-        pageTitleView.configure(icon: UIImage(systemName: "globe"))
-        pageTitleView.configure(title: "页面标题")
-        pageTitleView.configure(description: "当前浏览页面")
-        pageTitleView.configure(value: viewModel.pageTitle.isEmpty ? "网页登录" : viewModel.pageTitle)
-        controlsStackView.addArrangedSubviewWithMargin(pageTitleView)
-        controlsStackView.addArrangedSubview(SeparatorView())
-
-        let addressView = ConfigurableInfoView().setTapBlock { [weak self] view in
-            guard let self else { return }
-            let input = AlertInputViewController(
-                title: "打开地址",
-                message: "输入要访问的网址。",
-                placeholder: "https://",
-                text: self.viewModel.sourceURL,
-                cancelButtonText: "取消",
-                doneButtonText: "打开"
-            ) { [weak self] output in
-                guard let self else { return }
-                self.viewModel.proxy.load(output)
-                view.configure(value: output)
-            }
-            self.present(input, animated: true)
-        }
-        addressView.configure(icon: UIImage(systemName: "link"))
-        addressView.configure(title: "当前地址")
-        addressView.configure(description: "点击可输入新地址")
-        addressView.configure(value: viewModel.sourceURL)
-        controlsStackView.addArrangedSubviewWithMargin(addressView)
-        controlsStackView.addArrangedSubview(SeparatorView())
-
-        let backAction = ConfigurableActionView { [weak self] _ in
-            self?.viewModel.proxy.goBack()
-        }
-        backAction.configure(icon: UIImage(systemName: "chevron.backward"))
-        backAction.configure(title: "返回上一页")
-        backAction.configure(description: viewModel.canGoBack ? "返回浏览器上一页。" : "当前没有可返回的页面。")
-        backAction.isUserInteractionEnabled = viewModel.canGoBack
-        backAction.alpha = viewModel.canGoBack ? 1 : 0.4
-        controlsStackView.addArrangedSubviewWithMargin(backAction)
-        controlsStackView.addArrangedSubview(SeparatorView())
-
-        let reloadAction = ConfigurableActionView { [weak self] _ in
-            self?.viewModel.proxy.reload()
-        }
-        reloadAction.configure(icon: UIImage(systemName: "arrow.clockwise"))
-        reloadAction.configure(title: "刷新页面")
-        reloadAction.configure(description: "重新加载当前网页。")
-        controlsStackView.addArrangedSubviewWithMargin(reloadAction)
-        controlsStackView.addArrangedSubview(SeparatorView())
-
-        let captureAction = ConfigurableActionView { [weak self] _ in
-            guard let self else { return }
-            Task { await self.viewModel.inspectAndCapture() }
-        }
-        captureAction.configure(icon: UIImage(systemName: "viewfinder"))
-        captureAction.configure(title: viewModel.phase == .preview ? "重新识别" : "识别页面")
-        captureAction.configure(description: "登录后进入课表页面，再执行识别。")
-        captureAction.isUserInteractionEnabled = !isBusy
-        captureAction.alpha = isBusy ? 0.4 : 1
-        controlsStackView.addArrangedSubviewWithMargin(captureAction)
-        controlsStackView.addArrangedSubview(SeparatorView())
     }
 
     private func rebuildStatus() {
@@ -297,7 +211,7 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
 
         switch viewModel.phase {
         case .browsing:
-            appendFooter("请先登录学校系统并进入课表页面，然后点击右上角的确认按钮或“识别页面”。")
+            appendFooter("请先登录学校系统并进入课表页面，然后点击右上角“识别”。")
         case .capturing:
             appendFooter("正在识别并抓取当前页面…")
         case .unsupported:
@@ -365,27 +279,35 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
         statusStackView.addArrangedSubview(SeparatorView())
     }
 
-    private func updateConfirmButtonState() {
+    private func updateNavigationState() {
+        backItem.isEnabled = viewModel.canGoBack
+
+        navigationItem.prompt = viewModel.pageTitle.isEmpty ? nil : viewModel.pageTitle
+        if !addressField.isFirstResponder {
+            addressField.text = viewModel.sourceURL
+        }
+
+        let title: String
         let enabled: Bool
         switch viewModel.phase {
         case .preview:
+            title = "导入"
             enabled = viewModel.draftErrors.isEmpty
-        case .capturing, .importing:
+        case .capturing:
+            title = "识别中"
             enabled = false
+        case .importing:
+            title = "导入中"
+            enabled = false
+        case .done:
+            title = "完成"
+            enabled = true
         default:
+            title = "识别"
             enabled = true
         }
-        confirmButton.isEnabled = enabled
-        confirmButton.alpha = enabled ? 1 : 0.4
-    }
-
-    private var isBusy: Bool {
-        switch viewModel.phase {
-        case .capturing, .importing:
-            return true
-        default:
-            return false
-        }
+        primaryItem.title = title
+        primaryItem.isEnabled = enabled
     }
 
     private func clearArrangedSubviews(in stackView: UIStackView) {
@@ -393,6 +315,21 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
             stackView.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
+    }
+
+    @objc private func backTapped() {
+        viewModel.proxy.goBack()
+    }
+
+    @objc private func reloadTapped() {
+        viewModel.proxy.reload()
+    }
+
+    private func loadAddressFromField() {
+        guard let value = addressField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return
+        }
+        viewModel.proxy.load(value)
     }
 
     @objc private func closeTapped() {
@@ -434,53 +371,28 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate {
             canGoBack: webView.canGoBack
         )
     }
-}
 
-private final class BrowserHeaderButton: UIControl {
-    private let imageView = UIImageView()
-    private let symbolName: String
-    private let baseTintColor: UIColor
-
-    init(systemName: String, tintColor: UIColor) {
-        symbolName = systemName
-        baseTintColor = tintColor
-        super.init(frame: .zero)
-
-        backgroundColor = .secondarySystemBackground
-        layer.borderWidth = 1.5
-        layer.borderColor = tintColor.cgColor
-
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.contentMode = .scaleAspectFit
-        imageView.tintColor = tintColor
-        imageView.image = UIImage(
-            systemName: systemName,
-            withConfiguration: UIImage.SymbolConfiguration(weight: .semibold)
-        )
-        addSubview(imageView)
-
-        NSLayoutConstraint.activate([
-            imageView.centerXAnchor.constraint(equalTo: centerXAnchor),
-            imageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            imageView.widthAnchor.constraint(equalToConstant: 16),
-            imageView.heightAnchor.constraint(equalToConstant: 16),
-        ])
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override var isEnabled: Bool {
-        didSet {
-            imageView.tintColor = isEnabled ? baseTintColor : .systemGray3
-            layer.borderColor = (isEnabled ? baseTintColor : UIColor.systemGray3).cgColor
+    func webView(
+        _ webView: WKWebView,
+        createWebViewWith configuration: WKWebViewConfiguration,
+        for navigationAction: WKNavigationAction,
+        windowFeatures: WKWindowFeatures
+    ) -> WKWebView? {
+        if navigationAction.targetFrame == nil, let url = navigationAction.request.url {
+            webView.load(URLRequest(url: url))
         }
+        return nil
     }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        layer.cornerRadius = min(bounds.width, bounds.height) / 2
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        loadAddressFromField()
+        textField.resignFirstResponder()
+        return true
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let width = max(150, min(320, view.bounds.width - 180))
+        addressWidthConstraint?.constant = width
     }
 }

@@ -146,6 +146,17 @@ func clampWeek(_ week: Int, timetable: Timetable) -> Int {
     max(1, min(week, timetable.weeksCount))
 }
 
+func timetableWeek(for date: Date, timetable: Timetable) -> Int? {
+    guard let startDate = parseDateInput(timetable.startDate) else { return nil }
+    let calendar = Calendar(identifier: .gregorian)
+    let startDay = calendar.startOfDay(for: startDate)
+    let targetDay = calendar.startOfDay(for: date)
+    let diffDays = calendar.dateComponents([.day], from: startDay, to: targetDay).day ?? 0
+    let week = Int(floor(Double(diffDays) / 7.0)) + 1
+    guard week >= 1, week <= timetable.weeksCount else { return nil }
+    return week
+}
+
 func weekMatchesType(_ week: Int, weekType: WeekType) -> Bool {
     switch weekType {
     case .all: true
@@ -218,10 +229,6 @@ func resolvePreferredTimetable(on date: Date = Date(), timetables: [Timetable]) 
 }
 
 func shouldDisplayTimetableBefore(_ lhs: Timetable, _ rhs: Timetable, on date: Date = Date()) -> Bool {
-    if lhs.isActive != rhs.isActive {
-        return lhs.isActive && !rhs.isActive
-    }
-
     let lhsPhase = resolveTimetablePhase(lhs, on: date)
     let rhsPhase = resolveTimetablePhase(rhs, on: date)
     let lhsRank = timetablePhaseRank(lhsPhase)

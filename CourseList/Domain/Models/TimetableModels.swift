@@ -154,3 +154,59 @@ struct WeekSchedule: Codable, Equatable, Sendable {
     let week: Int
     var days: [WeekScheduleDay]
 }
+
+struct WeekCourseInfo: Identifiable, Codable, Equatable, Sendable {
+    let id: String
+    let courseId: String
+    let courseName: String
+    let teacher: String?
+    let location: String?
+    let color: String?
+    let note: String?
+    let weekday: Int
+    let week: Int
+    let startPeriod: Int
+    let endPeriod: Int
+    let startTime: String?
+    let endTime: String?
+    let weekType: WeekType
+
+    init(
+        meetingId: String,
+        courseId: String,
+        courseName: String,
+        teacher: String?,
+        location: String?,
+        color: String?,
+        note: String?,
+        weekday: Int,
+        week: Int,
+        startPeriod: Int,
+        endPeriod: Int,
+        startTime: String?,
+        endTime: String?,
+        weekType: WeekType
+    ) {
+        id = [meetingId, week].map(String.init(describing:)).joined(separator: ":")
+        self.courseId = courseId
+        self.courseName = courseName
+        self.teacher = teacher
+        self.location = location
+        self.color = color
+        self.note = note
+        self.weekday = weekday
+        self.week = week
+        self.startPeriod = startPeriod
+        self.endPeriod = endPeriod
+        self.startTime = startTime
+        self.endTime = endTime
+        self.weekType = weekType
+    }
+}
+
+struct WeekCoursesSnapshot: Codable, Equatable, Sendable {
+    let timetableId: String
+    let timetableName: String
+    let week: Int
+    var items: [WeekCourseInfo]
+}

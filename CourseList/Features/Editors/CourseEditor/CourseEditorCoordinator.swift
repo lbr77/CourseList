@@ -15,8 +15,11 @@ final class CourseEditorCoordinator: NSObject {
         var note: String
         var meetings: [CourseMeetingInput]
         var periods: [TimetablePeriod]
+        var currentWeek: Int
+        var weeksCount: Int
+        var defaultWeekday: Int
 
-        init(courseId: String?, timetableId: String, name: String, teacher: String, location: String, color: String, note: String, meetings: [CourseMeetingInput], periods: [TimetablePeriod]) {
+        init(courseId: String?, timetableId: String, name: String, teacher: String, location: String, color: String, note: String, meetings: [CourseMeetingInput], periods: [TimetablePeriod], currentWeek: Int, weeksCount: Int, defaultWeekday: Int) {
             self.courseId = courseId
             self.timetableId = timetableId
             self.name = name
@@ -26,6 +29,9 @@ final class CourseEditorCoordinator: NSObject {
             self.note = note
             self.meetings = meetings
             self.periods = periods
+            self.currentWeek = currentWeek
+            self.weeksCount = weeksCount
+            self.defaultWeekday = defaultWeekday
         }
     }
 
@@ -52,7 +58,8 @@ final class CourseEditorCoordinator: NSObject {
     }
 
     private static func placeholderState(timetableId: String?) -> State {
-        State(
+        let defaultWeekday = currentWeekday()
+        return State(
             courseId: nil,
             timetableId: timetableId ?? "",
             name: "",
@@ -60,8 +67,11 @@ final class CourseEditorCoordinator: NSObject {
             location: "",
             color: "",
             note: "",
-            meetings: [defaultMeeting(periods: [])],
-            periods: []
+            meetings: [defaultMeeting(periods: [], currentWeek: 1, weeksCount: 16, weekday: defaultWeekday)],
+            periods: [],
+            currentWeek: 1,
+            weeksCount: 16,
+            defaultWeekday: defaultWeekday
         )
     }
 
@@ -70,6 +80,9 @@ final class CourseEditorCoordinator: NSObject {
             let loadedCourse = try? await repository.getCourse(courseId: courseId)
             if let course = loadedCourse {
                 let loadedPeriods = (try? await repository.listPeriods(timetableId: course.timetableId)) ?? []
+                let timetables = (try? await repository.listTimetables()) ?? []
+                let timetable = timetables.first(where: { $0.id == course.timetableId })
+                let defaults = meetingDefaults(for: timetable)
                 return State(
                     courseId: course.id,
                     timetableId: course.timetableId,
@@ -89,14 +102,19 @@ final class CourseEditorCoordinator: NSObject {
                             weekType: $0.weekType
                         )
                     },
-                    periods: loadedPeriods
+                    periods: loadedPeriods,
+                    currentWeek: defaults.currentWeek,
+                    weeksCount: defaults.weeksCount,
+                    defaultWeekday: defaults.weekday
                 )
             }
         }
 
         let timetables = (try? await repository.listTimetables()) ?? []
-        let resolvedTimetableId = timetableId ?? resolvePreferredTimetable(timetables: timetables)?.id ?? ""
+        let timetable = (timetableId.flatMap { id in timetables.first(where: { $0.id == id }) }) ?? resolvePreferredTimetable(timetables: timetables)
+        let resolvedTimetableId = timetable?.id ?? ""
         let loadedPeriods = (try? await repository.listPeriods(timetableId: resolvedTimetableId)) ?? []
+        let defaults = meetingDefaults(for: timetable)
 
         return State(
             courseId: nil,
@@ -106,8 +124,11 @@ final class CourseEditorCoordinator: NSObject {
             location: "",
             color: "",
             note: "",
-            meetings: [defaultMeeting(periods: loadedPeriods)],
-            periods: loadedPeriods
+            meetings: [defaultMeeting(periods: loadedPeriods, currentWeek: defaults.currentWeek, weeksCount: defaults.weeksCount, weekday: defaults.weekday)],
+            periods: loadedPeriods,
+            currentWeek: defaults.currentWeek,
+            weeksCount: defaults.weeksCount,
+            defaultWeekday: defaults.weekday
         )
     }
 
@@ -169,7 +190,7 @@ final class CourseEditorCoordinator: NSObject {
     }
 
     func appendMeeting() {
-        state.meetings.append(Self.defaultMeeting(periods: state.periods))
+        state.meetings.append(Self.defaultMeeting(periods: state.periods, currentWeek: state.currentWeek, weeksCount: state.weeksCount, weekday: state.defaultWeekday))
     }
 
     func deleteMeeting(at index: Int) {
@@ -386,16 +407,31 @@ final class CourseEditorCoordinator: NSObject {
         rootController?.present(alert, animated: true)
     }
 
-    private static func defaultMeeting(periods: [TimetablePeriod]) -> CourseMeetingInput {
+    private static func defaultMeeting(periods: [TimetablePeriod], currentWeek: Int, weeksCount: Int, weekday: Int) -> CourseMeetingInput {
         .init(
-            weekday: 1,
-            startWeek: 1,
-            endWeek: 16,
+            weekday: weekday,
+            startWeek: max(1, currentWeek),
+            endWeek: max(max(1, currentWeek), weeksCount),
             startPeriod: 1,
             endPeriod: min(2, max(1, periods.count)),
             location: nil,
             weekType: .all
         )
+    }
+
+    private static func meetingDefaults(for timetable: Timetable?) -> (currentWeek: Int, weeksCount: Int, weekday: Int) {
+        let weekday = currentWeekday()
+        guard let timetable else {
+            return (1, 16, weekday)
+        }
+
+        let currentWeek = clampWeek(getCurrentWeek(startDate: timetable.startDate), timetable: timetable)
+        return (currentWeek, timetable.weeksCount, weekday)
+    }
+
+    private static func currentWeekday(on date: Date = Date()) -> Int {
+        let weekday = Calendar(identifier: .gregorian).component(.weekday, from: date)
+        return weekday == 1 ? 7 : weekday - 1
     }
 }
 
@@ -472,7 +508,7 @@ private final class CourseEditorController: CourseEditorReloadableStackScrollCon
                 for: \CourseEditorCoordinator.State.location,
                 from: view,
                 title: "编辑地点",
-                message: "",
+                message: ""                                                                                                                                           ,
                 placeholder: "逸夫教学楼"
             ) { output in
                 view.configure(value: output.isEmpty ? "未设置" : output)

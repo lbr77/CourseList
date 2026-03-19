@@ -5,6 +5,7 @@ struct CalendarKitTimetableView: UIViewControllerRepresentable {
     let timetable: Timetable?
     let periods: [TimetablePeriod]
     let courses: [CourseWithMeetings]
+    let schedule: WeekSchedule
     let onSelectCourse: (CourseWithMeetings) -> Void
     let onVisibleDateChange: (Date) -> Void
     let scrollToCurrentWeekToken: Int
@@ -17,7 +18,7 @@ struct CalendarKitTimetableView: UIViewControllerRepresentable {
         }
         controller.onVisibleDateChange = onVisibleDateChange
         controller.scrollToCurrentWeekToken = scrollToCurrentWeekToken
-        controller.apply(timetable: timetable, periods: periods, courses: courses)
+        controller.apply(timetable: timetable, periods: periods, courses: courses, schedule: schedule)
         return controller
     }
 
@@ -28,7 +29,7 @@ struct CalendarKitTimetableView: UIViewControllerRepresentable {
         }
         uiViewController.onVisibleDateChange = onVisibleDateChange
         uiViewController.scrollToCurrentWeekToken = scrollToCurrentWeekToken
-        uiViewController.apply(timetable: timetable, periods: periods, courses: courses)
+        uiViewController.apply(timetable: timetable, periods: periods, courses: courses, schedule: schedule)
     }
 }
 
@@ -47,23 +48,25 @@ final class TimetableWeekViewController: WeekViewController {
     private var timetable: Timetable?
     private var periods: [TimetablePeriod] = []
     private var courses: [CourseWithMeetings] = []
+    private var schedule = WeekSchedule(week: 1, days: (1 ... 7).map { WeekScheduleDay(weekday: $0) })
     private var lastAppliedSignature = ""
     private var lastResolvedHeight: CGFloat = 0
     private var lastHandledScrollToCurrentWeekToken = 0
 
-    func apply(timetable: Timetable?, periods: [TimetablePeriod], courses: [CourseWithMeetings]) {
+    func apply(timetable: Timetable?, periods: [TimetablePeriod], courses: [CourseWithMeetings], schedule: WeekSchedule) {
         let previousTimetableId = self.timetable?.id
         let selectedDate = weekView.state?.selectedDate
 
         self.timetable = timetable
         self.periods = periods.sorted { $0.periodIndex < $1.periodIndex }
         self.courses = courses
+        self.schedule = schedule
 
         let signature = [
             timetable?.id ?? "no-timetable",
             timetable?.updatedAt ?? "no-updated-at",
             periodsSignature(self.periods),
-            coursesSignature(self.courses)
+            scheduleSignature(schedule)
         ].joined(separator: "|")
 
         guard signature != lastAppliedSignature else { return }
@@ -121,28 +124,22 @@ final class TimetableWeekViewController: WeekViewController {
     }
 
     override func eventsForDate(_ date: Date) -> [EventDescriptor] {
-        guard let timetable else { return [] }
-        guard let targetWeek = courseWeek(for: date, timetable: timetable) else { return [] }
+        guard timetable != nil else { return [] }
 
         let weekday = weekdayIndex(for: date)
         let dayOnly = startOfDay(for: date)
+        let items = schedule.days.first(where: { $0.weekday == weekday })?.items ?? []
 
-        return courses.flatMap { course in
-            course.meetings.compactMap { meeting in
-                guard meeting.weekday == weekday else { return nil }
-                guard meeting.startWeek <= targetWeek, meeting.endWeek >= targetWeek else { return nil }
-                guard weekMatchesType(targetWeek, weekType: meeting.weekType) else { return nil }
-
-                let interval = meetingDateInterval(for: meeting, on: dayOnly)
-                let event = Event()
-                event.dateInterval = interval
-                event.userInfo = course.id
-                if let color = UIColor(hex: course.color) {
-                    event.color = color
-                }
-                event.text = eventText(for: course, meeting: meeting, interval: interval)
-                return event
+        return items.compactMap { item in
+            let interval = meetingDateInterval(startPeriod: item.startPeriod, endPeriod: item.endPeriod, on: dayOnly)
+            let event = Event()
+            event.dateInterval = interval
+            event.userInfo = item.courseId
+            if let color = UIColor(hex: item.color) {
+                event.color = color
             }
+            event.text = eventText(for: item, interval: interval)
+            return event
         }
     }
 
@@ -152,33 +149,22 @@ final class TimetableWeekViewController: WeekViewController {
         onSelectCourseId?(courseId)
     }
 
-    private func courseWeek(for date: Date, timetable: Timetable) -> Int? {
-        guard let startDate = parseDateInput(timetable.startDate) else { return nil }
-        let calendar = Calendar(identifier: .gregorian)
-        let startDay = calendar.startOfDay(for: startDate)
-        let targetDay = calendar.startOfDay(for: date)
-        let diffDays = calendar.dateComponents([.day], from: startDay, to: targetDay).day ?? 0
-        let week = Int(floor(Double(diffDays) / 7.0)) + 1
-        guard week >= 1, week <= timetable.weeksCount else { return nil }
-        return week
-    }
-
     private func shouldResetVisibleDate(previousTimetableId: String?, selectedDate: Date?) -> Bool {
         guard let timetable else { return false }
         guard previousTimetableId == timetable.id else { return true }
         guard let selectedDate else { return true }
-        return courseWeek(for: selectedDate, timetable: timetable) == nil
+        return timetableWeek(for: selectedDate, timetable: timetable) == nil
     }
 
     private func resolvedDisplayDate(preferred date: Date?) -> Date {
         guard let timetable else { return date ?? Date() }
 
-        if let date, courseWeek(for: date, timetable: timetable) != nil {
+        if let date, timetableWeek(for: date, timetable: timetable) != nil {
             return date
         }
 
         let today = Date()
-        if courseWeek(for: today, timetable: timetable) != nil {
+        if timetableWeek(for: today, timetable: timetable) != nil {
             return today
         }
 
@@ -195,41 +181,31 @@ final class TimetableWeekViewController: WeekViewController {
             .joined(separator: ",")
     }
 
-    private func coursesSignature(_ courses: [CourseWithMeetings]) -> String {
-        courses
-            .map { course in
-                let meetings = course.meetings
+    private func scheduleSignature(_ schedule: WeekSchedule) -> String {
+        schedule.days
+            .map { day in
+                let items = day.items
                     .map {
-                        "\($0.id):\($0.weekday):\($0.startWeek):\($0.endWeek):\($0.startPeriod):\($0.endPeriod):\($0.location ?? ""):\($0.weekType.rawValue)"
+                        "\($0.id):\($0.courseId):\($0.startPeriod):\($0.endPeriod):\($0.location ?? "")"
                     }
                     .joined(separator: ";")
-
-                return [
-                    course.id,
-                    course.updatedAt,
-                    course.name,
-                    course.teacher ?? "",
-                    course.location ?? "",
-                    course.color ?? "",
-                    course.note ?? "",
-                    meetings
-                ].joined(separator: ":")
+                return "\(day.weekday)[\(items)]"
             }
             .joined(separator: "|")
     }
 
     private func weekdayIndex(for date: Date) -> Int {
-        let weekday = Calendar(identifier: .gregorian).component(.weekday, from: date)
+        let weekday = displayCalendar.component(.weekday, from: date)
         return weekday == 1 ? 7 : weekday - 1
     }
 
     private func startOfDay(for date: Date) -> Date {
-        Calendar(identifier: .gregorian).startOfDay(for: date)
+        displayCalendar.startOfDay(for: date)
     }
 
-    private func meetingDateInterval(for meeting: CourseMeeting, on day: Date) -> DateInterval {
-        let start = dayTime(for: day, periodIndex: meeting.startPeriod, useEndTime: false, fallbackHour: 8 + max(0, meeting.startPeriod - 1))
-        let end = dayTime(for: day, periodIndex: meeting.endPeriod, useEndTime: true, fallbackHour: 9 + max(0, meeting.endPeriod - 1))
+    private func meetingDateInterval(startPeriod: Int, endPeriod: Int, on day: Date) -> DateInterval {
+        let start = dayTime(for: day, periodIndex: startPeriod, useEndTime: false, fallbackHour: 8 + max(0, startPeriod - 1))
+        let end = dayTime(for: day, periodIndex: endPeriod, useEndTime: true, fallbackHour: 9 + max(0, endPeriod - 1))
         let safeEnd = end > start ? end : start.addingTimeInterval(45 * 60)
         return DateInterval(start: start, end: safeEnd)
     }
@@ -239,24 +215,26 @@ final class TimetableWeekViewController: WeekViewController {
         if let timeString, let resolved = combine(day: day, timeString: timeString) {
             return resolved
         }
-        var components = Calendar(identifier: .gregorian).dateComponents([.year, .month, .day], from: day)
+        var components = displayCalendar.dateComponents([.year, .month, .day], from: day)
+        components.timeZone = displayCalendar.timeZone
         components.hour = fallbackHour
         components.minute = 0
-        return components.date ?? day
+        return displayCalendar.date(from: components) ?? day
     }
 
     private func combine(day: Date, timeString: String) -> Date? {
         let parts = timeString.split(separator: ":")
         guard parts.count == 2, let hour = Int(parts[0]), let minute = Int(parts[1]) else { return nil }
-        var components = Calendar(identifier: .gregorian).dateComponents([.year, .month, .day], from: day)
+        var components = displayCalendar.dateComponents([.year, .month, .day], from: day)
+        components.timeZone = displayCalendar.timeZone
         components.hour = hour
         components.minute = minute
-        return components.date
+        return displayCalendar.date(from: components)
     }
 
-    private func eventText(for course: CourseWithMeetings, meeting: CourseMeeting, interval: DateInterval) -> String {
-        var lines = [course.name]
-        if let location = meeting.location ?? course.location, !location.isEmpty {
+    private func eventText(for item: DayScheduleItem, interval: DateInterval) -> String {
+        var lines = [item.name]
+        if let location = item.location, !location.isEmpty {
             lines.append(location)
         }
         lines.append("\(timeString(from: interval.start)) - \(timeString(from: interval.end))")
@@ -266,8 +244,13 @@ final class TimetableWeekViewController: WeekViewController {
     private func timeString(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "zh_CN")
+        formatter.timeZone = displayCalendar.timeZone
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
+    }
+
+    private var displayCalendar: Calendar {
+        weekView.calendar
     }
 }
 

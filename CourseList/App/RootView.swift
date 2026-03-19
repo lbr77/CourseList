@@ -97,7 +97,7 @@ struct RootView: View {
                 case .importFlow(let school):
                     ConfigurableSheetContainer(
                         rootController: UINavigationController(
-                            rootViewController: ImportContainerController(
+                            rootViewController: ImportBrowserController(
                                 viewModel: ImportViewModel(repository: repository, school: school),
                                 onImported: {
                                     sheetRoute = nil

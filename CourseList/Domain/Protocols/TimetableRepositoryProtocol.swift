@@ -21,6 +21,7 @@ protocol TimetableRepositoryProtocol: Sendable {
     func saveCourse(input: SaveCourseInput) async throws -> String
     func deleteCourse(courseId: String) async throws
     func getWeekSchedule(timetableId: String, week: Int) async throws -> WeekSchedule
+    func getWeekCourses(timetableId: String, week: Int) async throws -> WeekCoursesSnapshot
     func findCourseConflicts(input: SaveCourseInput) async throws -> [CourseConflictWarning]
     func importTimetableDraft(_ draft: ImportedTimetableDraft) async throws -> String
 }

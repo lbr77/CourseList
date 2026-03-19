@@ -373,17 +373,11 @@ public final class WeekTimelineView: UIView {
     }
 
     public func dateToY(_ date: Date) -> Double {
-        let provisionedDate = date.dateOnly(calendar: calendar)
-        let timelineDate = selectedDate.dateOnly(calendar: calendar)
-        var dayOffset: Double = 0
-        if provisionedDate > timelineDate { dayOffset += 1 }
-        else if provisionedDate < timelineDate { dayOffset -= 1 }
-        let fullTimelineHeight = 24 * style.verticalDiff
         let hour = component(.hour, from: date)
         let minute = component(.minute, from: date)
         let hourY = Double(hour) * style.verticalDiff + style.verticalInset
         let minuteY = Double(minute) * style.verticalDiff / 60
-        return hourY + minuteY + fullTimelineHeight * dayOffset
+        return hourY + minuteY
     }
 
     public func yToDate(_ y: Double, for date: Date) -> Date {

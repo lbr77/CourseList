@@ -18,9 +18,11 @@ struct TimetableHomeView: View {
                 timetable: viewModel.currentTimetable,
                 periods: viewModel.periods,
                 courses: viewModel.courses,
+                schedule: viewModel.schedule,
                 onSelectCourse: onEditCourseTap,
                 onVisibleDateChange: { date in
                     visibleDate = date
+                    Task { await viewModel.goToDate(date) }
                 },
                 scrollToCurrentWeekToken: scrollToCurrentWeekToken
             )

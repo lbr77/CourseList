@@ -20,11 +20,7 @@ final class TimetableRepository: TimetableRepositoryProtocol {
     func getActiveTimetable() async throws -> Timetable? {
         try await manager.read { database in
             let records: [TimetableRecord] = try database.getObjects(fromTable: DatabaseTable.timetables)
-            let timetables = records.map(Self.mapTimetable)
-            if let active = timetables.first(where: \.isActive) {
-                return active
-            }
-            return resolvePreferredTimetable(timetables: timetables)
+            return resolveCurrentTimetable(timetables: records.map(Self.mapTimetable))
         }
     }
 
@@ -49,8 +45,6 @@ final class TimetableRepository: TimetableRepositoryProtocol {
 
         try await manager.write { database in
             try database.run(transaction: { _ in
-                try database.update(table: DatabaseTable.timetables, on: TimetableRecord.Properties.isActive, with: false)
-
                 let record = TimetableRecord()
                 let normalizedName = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 record.id = timetableId
@@ -58,7 +52,7 @@ final class TimetableRepository: TimetableRepositoryProtocol {
                 record.termName = normalizedName
                 record.startDate = input.startDate
                 record.weeksCount = input.weeksCount
-                record.isActive = true
+                record.isActive = false
                 record.createdAt = timestamp
                 record.updatedAt = timestamp
                 try database.insert(record, intoTable: DatabaseTable.timetables)
@@ -325,6 +319,23 @@ final class TimetableRepository: TimetableRepositoryProtocol {
         return WeekScheduleBuilder.build(week: week, courses: courses)
     }
 
+    func getWeekCourses(timetableId: String, week: Int) async throws -> WeekCoursesSnapshot {
+        let timetable = try await getRequiredTimetable(id: timetableId)
+        guard (1 ... timetable.weeksCount).contains(week) else {
+            throw AppError.validation("周次超出范围：\(week)，有效范围为 1-\(timetable.weeksCount)")
+        }
+
+        async let periodsTask = listPeriods(timetableId: timetableId)
+        async let coursesTask = listCourses(timetableId: timetableId)
+
+        return WeekScheduleBuilder.buildCoursesSnapshot(
+            timetable: timetable,
+            week: week,
+            periods: try await periodsTask,
+            courses: try await coursesTask
+        )
+    }
+
     func findCourseConflicts(input: SaveCourseInput) async throws -> [CourseConflictWarning] {
         let courses = try await listCourses(timetableId: input.timetableId)
         return ConflictDetector.findConflicts(input: input, courses: courses)
@@ -338,8 +349,6 @@ final class TimetableRepository: TimetableRepositoryProtocol {
 
         try await manager.write { database in
             try database.run(transaction: { _ in
-                try database.update(table: DatabaseTable.timetables, on: TimetableRecord.Properties.isActive, with: false)
-
                 let timetable = TimetableRecord()
                 let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 timetable.id = timetableId
@@ -347,7 +356,7 @@ final class TimetableRepository: TimetableRepositoryProtocol {
                 timetable.termName = normalizedName
                 timetable.startDate = draft.startDate
                 timetable.weeksCount = draft.weeksCount
-                timetable.isActive = true
+                timetable.isActive = false
                 timetable.createdAt = timestamp
                 timetable.updatedAt = timestamp
                 try database.insert(timetable, intoTable: DatabaseTable.timetables)
@@ -384,6 +393,20 @@ final class TimetableRepository: TimetableRepositoryProtocol {
 }
 
 private extension TimetableRepository {
+    func getRequiredTimetable(id: String) async throws -> Timetable {
+        guard let timetable = try await manager.read({ database in
+            let record = try database.getObject(
+                fromTable: DatabaseTable.timetables,
+                where: TimetableRecord.Properties.id == id
+            ) as TimetableRecord?
+            return record.map(Self.mapTimetable)
+        }) else {
+            throw AppError.notFound("未找到对应课表：\(id)")
+        }
+
+        return timetable
+    }
+
     static func sortTimetables(_ lhs: TimetableRecord, _ rhs: TimetableRecord) -> Bool {
         shouldDisplayTimetableBefore(mapTimetable(lhs), mapTimetable(rhs))
     }

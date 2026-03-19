@@ -1,4 +1,5 @@
 import ConfigurableKit
+import EventKit
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -11,33 +12,71 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
     let onNewTimetableTap: () -> Void
     let onEditTimetableTap: (String?) -> Void
     let onRepositoryChanged: () -> Void
+    let embedInNavigationController: Bool
+    let onCloseTap: (() -> Void)?
+
+    final class Coordinator: NSObject {
+        private let onCloseTap: (() -> Void)?
+
+        init(onCloseTap: (() -> Void)?) {
+            self.onCloseTap = onCloseTap
+        }
+
+        @objc func closeTapped() {
+            onCloseTap?()
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onCloseTap: onCloseTap)
+    }
 
     func makeUIViewController(context: Context) -> UIViewController {
-        let navigationController = UINavigationController(rootViewController: makeRootController())
-        navigationController.navigationBar.prefersLargeTitles = true
-        return navigationController
+        let rootController = makeRootController(context: context)
+
+        if embedInNavigationController {
+            let navigationController = UINavigationController(rootViewController: rootController)
+            navigationController.navigationBar.prefersLargeTitles = true
+            return navigationController
+        }
+
+        let containerController = SettingsHostingController()
+        containerController.setRootController(rootController)
+        return containerController
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        guard let navigationController = uiViewController as? UINavigationController else { return }
+        let rootController = makeRootController(context: context)
 
-        var viewControllers = navigationController.viewControllers
-        let rootController = makeRootController()
+        if let navigationController = uiViewController as? UINavigationController {
+            var viewControllers = navigationController.viewControllers
 
-        if viewControllers.isEmpty {
-            navigationController.setViewControllers([rootController], animated: false)
+            if viewControllers.isEmpty {
+                navigationController.setViewControllers([rootController], animated: false)
+                return
+            }
+
+            viewControllers[0] = rootController
+            navigationController.setViewControllers(viewControllers, animated: false)
             return
         }
 
-        viewControllers[0] = rootController
-        navigationController.setViewControllers(viewControllers, animated: false)
+        guard let containerController = uiViewController as? SettingsHostingController else { return }
+        containerController.setRootController(rootController)
     }
 
-    private func makeRootController() -> UIViewController {
+    private func makeRootController(context: Context) -> UIViewController {
         let controller = ConfigurableViewController(manifest: makeManifest())
         controller.title = "设置"
         controller.navigationItem.title = "设置"
-        controller.navigationItem.largeTitleDisplayMode = .always
+        controller.navigationItem.largeTitleDisplayMode = .never
+        if onCloseTap != nil {
+            controller.navigationItem.leftBarButtonItem = UIBarButtonItem(
+                barButtonSystemItem: .close,
+                target: context.coordinator,
+                action: #selector(Coordinator.closeTapped)
+            )
+        }
         return controller
     }
 
@@ -73,6 +112,17 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
                     explain: "主题、颜色与显示方式",
                     ephemeralAnnotation: .page {
                         TimetableAppearanceSettingsController()
+                    }
+                ),
+                ConfigurableObject(
+                    icon: "wrench.and.screwdriver",
+                    title: "工具",
+                    explain: "导入日历等实用功能",
+                    ephemeralAnnotation: .page {
+                        ToolSettingsController(
+                            repository: repository,
+                            onRepositoryChanged: onRepositoryChanged
+                        )
                     }
                 ),
                 ConfigurableObject(
@@ -113,6 +163,36 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
 
     private var footerText: String {
         "版本 \(appVersion)(\(appBuild))"
+    }
+}
+
+private final class SettingsHostingController: UIViewController {
+    private var rootController: UIViewController?
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+    }
+
+    func setRootController(_ controller: UIViewController) {
+        if let rootController {
+            rootController.willMove(toParent: nil)
+            rootController.view.removeFromSuperview()
+            rootController.removeFromParent()
+        }
+
+        addChild(controller)
+        controller.view.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(controller.view)
+        NSLayoutConstraint.activate([
+            controller.view.topAnchor.constraint(equalTo: view.topAnchor),
+            controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+        controller.didMove(toParent: self)
+
+        rootController = controller
     }
 }
 
@@ -337,10 +417,12 @@ private final class TimetableAppearanceSettingsController: SettingsReloadableSta
 @MainActor
 private final class NotificationPermissionSettingsController: SettingsReloadableStackScrollController {
     private let repository: any TimetableRepositoryProtocol
+    private let eventStore = EKEventStore()
 
     private var isNotificationEnabled = loadCourseNotificationEnabled()
     private var leadMinutes = loadCourseNotificationLeadMinutes()
     private var authorizationStatus: UNAuthorizationStatus = .notDetermined
+    private var calendarAuthorizationStatus: EKAuthorizationStatus = EKEventStore.authorizationStatus(for: .event)
 
     init(repository: any TimetableRepositoryProtocol) {
         self.repository = repository
@@ -357,11 +439,13 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
         super.viewWillAppear(animated)
         isNotificationEnabled = loadCourseNotificationEnabled()
         leadMinutes = loadCourseNotificationLeadMinutes()
+        calendarAuthorizationStatus = EKEventStore.authorizationStatus(for: .event)
         rebuildContent()
 
         Task { [weak self] in
             guard let self else { return }
             authorizationStatus = await CourseNotificationService.shared.authorizationStatus()
+            calendarAuthorizationStatus = EKEventStore.authorizationStatus(for: .event)
             rebuildContent()
         }
     }
@@ -386,8 +470,18 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
             self?.presentLeadMinutesPicker(from: view)
         }
 
+        appendEditableField(
+            icon: "calendar.badge.clock",
+            title: "日历读取权限",
+            description: calendarPermissionActionDescription,
+            value: calendarAuthorizationStatusLabel(calendarAuthorizationStatus),
+            placeholder: ""
+        ) { [weak self] _ in
+            self?.handleCalendarPermissionTap()
+        }
+
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionFooterView()
+            ConfigurableSectionFooterView().with(footer: footerText)
         )
         stackView.addArrangedSubviewWithMargin(UIView())
     }
@@ -429,6 +523,93 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
         Task { await CourseNotificationService.shared.syncNow(repository: repository) }
     }
 
+    private func handleCalendarPermissionTap() {
+        if hasCalendarReadPermission(status: calendarAuthorizationStatus) {
+            rebuildContent()
+            return
+        }
+
+        switch calendarAuthorizationStatus {
+        case .notDetermined:
+            requestCalendarPermission()
+        case .denied, .restricted:
+            openSystemSettings()
+        case .authorized:
+            rebuildContent()
+        @unknown default:
+            if #available(iOS 17.0, *) {
+                if calendarAuthorizationStatus == .writeOnly {
+                    requestCalendarPermission()
+                    return
+                }
+                if calendarAuthorizationStatus == .fullAccess {
+                    rebuildContent()
+                    return
+                }
+            }
+            rebuildContent()
+        }
+    }
+
+    private func requestCalendarPermission() {
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await requestCalendarReadPermission(using: eventStore)
+                calendarAuthorizationStatus = EKEventStore.authorizationStatus(for: .event)
+                rebuildContent()
+            } catch {
+                presentError(error)
+            }
+        }
+    }
+
+    private func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    private var calendarPermissionActionDescription: String {
+        switch calendarAuthorizationStatus {
+        case .notDetermined:
+            return "点击申请读取日历权限。"
+        case .restricted:
+            return "系统限制，无法修改。"
+        case .denied:
+            return "已拒绝，点击前往系统设置开启。"
+        case .authorized:
+            return "已授权，可读取系统日历。"
+        @unknown default:
+            if #available(iOS 17.0, *) {
+                if calendarAuthorizationStatus == .writeOnly {
+                    return "仅写入权限，点击升级到可读取。"
+                }
+                if calendarAuthorizationStatus == .fullAccess {
+                    return "已授权，可读取系统日历。"
+                }
+            }
+            return "权限状态未知。"
+        }
+    }
+
+    private var footerText: String {
+        switch authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return "通知已可用；日历权限用于“工具 -> 导入日历”。"
+        case .notDetermined:
+            return "通知未决定；启用课程提醒时会触发系统授权弹窗。"
+        case .denied:
+            return "通知已被拒绝，可在系统设置中重新开启；日历权限可单独管理。"
+        @unknown default:
+            return "通知、日历等系统权限可在这里统一管理。"
+        }
+    }
+
+    private func presentError(_ error: Error) {
+        let alert = UIAlertController(title: "操作失败", message: error.localizedDescription, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "知道了", style: .default))
+        present(alert, animated: true)
+    }
 
     private func appendSwitchField(icon: String, title: String, description: String?, isOn: Bool, onToggle: @escaping (Bool) -> Void) {
         let view = SettingsSwitchFieldView()
@@ -451,6 +632,775 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
         stackView.addArrangedSubview(SeparatorView())
     }
 
+}
+
+@MainActor
+private final class ToolSettingsController: SettingsReloadableStackScrollController {
+    private let repository: any TimetableRepositoryProtocol
+    private let onRepositoryChanged: () -> Void
+
+    init(repository: any TimetableRepositoryProtocol, onRepositoryChanged: @escaping () -> Void) {
+        self.repository = repository
+        self.onRepositoryChanged = onRepositoryChanged
+        super.init(nibName: nil, bundle: nil)
+        title = "工具"
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func buildContent() {
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionHeaderView().with(header: "工具")
+        ) { $0.bottom /= 2 }
+        stackView.addArrangedSubview(SeparatorView())
+
+        let page = ConfigurablePageView(page: { [weak self] in
+            guard let self else { return nil }
+            return CalendarImportSettingsController(
+                repository: self.repository,
+                onRepositoryChanged: self.onRepositoryChanged
+            )
+        })
+        page.configure(icon: UIImage(systemName: "calendar.badge.plus"))
+        page.configure(title: "导入日历")
+        page.configure(description: "把系统日历事件转换为课表。")
+        stackView.addArrangedSubviewWithMargin(page)
+        stackView.addArrangedSubview(SeparatorView())
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionFooterView().with(footer: "导入会创建新课表，不会覆盖现有课表。")
+        )
+        stackView.addArrangedSubviewWithMargin(UIView())
+    }
+}
+
+@MainActor
+private final class CalendarImportSettingsController: SettingsReloadableStackScrollController {
+    private struct TimeSlot: Hashable {
+        let startMinute: Int
+        let endMinute: Int
+    }
+
+    private struct EventOccurrence {
+        let week: Int
+        let weekday: Int
+        let startPeriod: Int
+        let endPeriod: Int
+        let location: String?
+    }
+
+    private struct CourseBucket {
+        var name: String
+        var location: String?
+        var note: String?
+        var occurrences: [EventOccurrence]
+    }
+
+    private struct MeetingSignature: Hashable {
+        let weekday: Int
+        let startPeriod: Int
+        let endPeriod: Int
+        let location: String?
+    }
+
+    private let repository: any TimetableRepositoryProtocol
+    private let onRepositoryChanged: () -> Void
+    private let eventStore = EKEventStore()
+    private let calendar = Calendar(identifier: .gregorian)
+
+    private var calendarAuthorizationStatus: EKAuthorizationStatus = EKEventStore.authorizationStatus(for: .event)
+    private var availableCalendars: [EKCalendar] = []
+    private var selectedCalendarIDs: Set<String> = []
+    private var rangeStartDate: Date
+    private var rangeEndDate: Date
+    private var timetableName: String
+    private var isImporting = false
+
+    init(repository: any TimetableRepositoryProtocol, onRepositoryChanged: @escaping () -> Void) {
+        self.repository = repository
+        self.onRepositoryChanged = onRepositoryChanged
+
+        let today = Calendar(identifier: .gregorian).startOfDay(for: Date())
+        rangeStartDate = today
+        rangeEndDate = Calendar(identifier: .gregorian).date(byAdding: .day, value: 16 * 7, to: today) ?? today
+        timetableName = "日历导入 \(formatDateInput(Date()))"
+
+        super.init(nibName: nil, bundle: nil)
+        title = "导入日历"
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        refreshCalendarAccessState()
+        rebuildContent()
+    }
+
+    override func buildContent() {
+        appendEditableField(
+            icon: "calendar.badge.clock",
+            title: "日历读取权限",
+            description: calendarPermissionActionDescription,
+            value: calendarAuthorizationStatusLabel(calendarAuthorizationStatus),
+            placeholder: ""
+        ) { [weak self] _ in
+            self?.handleCalendarPermissionTap()
+        }
+
+        guard hasCalendarReadPermission(status: calendarAuthorizationStatus) else {
+            stackView.addArrangedSubviewWithMargin(
+                ConfigurableSectionFooterView().with(footer: "需要允许读取日历，才能导入系统日历事件。")
+            )
+            stackView.addArrangedSubviewWithMargin(UIView())
+            return
+        }
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionHeaderView().with(header: "来源日历")
+        ) { $0.bottom /= 2 }
+        stackView.addArrangedSubview(SeparatorView())
+
+        if availableCalendars.isEmpty {
+            stackView.addArrangedSubviewWithMargin(
+                ConfigurableSectionFooterView().with(footer: "当前没有可读取的系统日历。")
+            )
+            stackView.addArrangedSubview(SeparatorView())
+        } else {
+            for sourceCalendar in availableCalendars {
+                appendSwitchField(
+                    icon: "calendar",
+                    title: sourceCalendar.title,
+                    description: sourceCalendar.source.title,
+                    isOn: selectedCalendarIDs.contains(sourceCalendar.calendarIdentifier)
+                ) { [weak self] isOn in
+                    self?.toggleCalendarSelection(id: sourceCalendar.calendarIdentifier, isOn: isOn)
+                }
+            }
+        }
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionHeaderView().with(header: "导入设置")
+        ) { $0.bottom /= 2 }
+        stackView.addArrangedSubview(SeparatorView())
+
+        appendEditableField(
+            icon: "textformat",
+            title: "课表名称",
+            description: "导入后会创建一个新的课表。",
+            value: timetableName,
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentNameEditor(from: view)
+        }
+
+        appendEditableField(
+            icon: "calendar",
+            title: "开始日期",
+            description: "只导入该日期及之后的事件。",
+            value: formatDateInput(rangeStartDate),
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentDateEditor(from: view, editingStart: true)
+        }
+
+        appendEditableField(
+            icon: "calendar",
+            title: "结束日期",
+            description: "只导入该日期及之前的事件。",
+            value: formatDateInput(rangeEndDate),
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentDateEditor(from: view, editingStart: false)
+        }
+
+        let importAction = ConfigurableActionView { [weak self] _ in
+            self?.startImport()
+        }
+        importAction.configure(icon: UIImage(systemName: isImporting ? "hourglass" : "square.and.arrow.down"))
+        importAction.configure(title: isImporting ? "正在导入…" : "开始导入")
+        importAction.configure(description: "\(selectedCalendarIDs.count) 个日历 · \(formatDateInput(rangeStartDate)) 至 \(formatDateInput(rangeEndDate))")
+        importAction.isUserInteractionEnabled = !isImporting
+        stackView.addArrangedSubviewWithMargin(importAction)
+        stackView.addArrangedSubview(SeparatorView())
+
+        let refreshAction = ConfigurableActionView { [weak self] _ in
+            self?.refreshCalendarAccessState()
+            self?.rebuildContent()
+        }
+        refreshAction.configure(icon: UIImage(systemName: "arrow.clockwise"))
+        refreshAction.configure(title: "刷新日历列表")
+        refreshAction.configure(description: "当系统日历有变更时可手动刷新。")
+        stackView.addArrangedSubviewWithMargin(refreshAction)
+        stackView.addArrangedSubview(SeparatorView())
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionFooterView().with(
+                footer: "导入规则：全天事件和跨天事件会被忽略；其余事件会按周次与星期自动转换。"
+            )
+        )
+        stackView.addArrangedSubviewWithMargin(UIView())
+    }
+
+    private func refreshCalendarAccessState() {
+        calendarAuthorizationStatus = EKEventStore.authorizationStatus(for: .event)
+        guard hasCalendarReadPermission(status: calendarAuthorizationStatus) else {
+            availableCalendars = []
+            selectedCalendarIDs = []
+            return
+        }
+
+        availableCalendars = eventStore.calendars(for: .event).sorted {
+            if $0.source.title != $1.source.title {
+                return $0.source.title.localizedCompare($1.source.title) == .orderedAscending
+            }
+            return $0.title.localizedCompare($1.title) == .orderedAscending
+        }
+
+        if selectedCalendarIDs.isEmpty {
+            selectedCalendarIDs = Set(availableCalendars.map(\.calendarIdentifier))
+        } else {
+            let availableIDs = Set(availableCalendars.map(\.calendarIdentifier))
+            selectedCalendarIDs.formIntersection(availableIDs)
+            if selectedCalendarIDs.isEmpty {
+                selectedCalendarIDs = availableIDs
+            }
+        }
+    }
+
+    private func handleCalendarPermissionTap() {
+        if hasCalendarReadPermission(status: calendarAuthorizationStatus) {
+            refreshCalendarAccessState()
+            rebuildContent()
+            return
+        }
+
+        switch calendarAuthorizationStatus {
+        case .notDetermined:
+            requestCalendarPermission()
+        case .denied, .restricted:
+            openSystemSettings()
+        case .authorized:
+            refreshCalendarAccessState()
+            rebuildContent()
+        @unknown default:
+            if #available(iOS 17.0, *) {
+                if calendarAuthorizationStatus == .writeOnly {
+                    requestCalendarPermission()
+                    return
+                }
+                if calendarAuthorizationStatus == .fullAccess {
+                    refreshCalendarAccessState()
+                    rebuildContent()
+                    return
+                }
+            }
+            rebuildContent()
+        }
+    }
+
+    private func requestCalendarPermission() {
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await requestCalendarReadPermission(using: eventStore)
+                refreshCalendarAccessState()
+                rebuildContent()
+            } catch {
+                presentError(error)
+            }
+        }
+    }
+
+    private func startImport() {
+        guard !isImporting else { return }
+        guard hasCalendarReadPermission(status: calendarAuthorizationStatus) else {
+            handleCalendarPermissionTap()
+            return
+        }
+        guard !selectedCalendarIDs.isEmpty else {
+            presentMessage(title: "无法导入", message: "请至少选择一个日历。")
+            return
+        }
+        guard rangeStartDate <= rangeEndDate else {
+            presentMessage(title: "日期范围无效", message: "结束日期不能早于开始日期。")
+            return
+        }
+
+        isImporting = true
+        rebuildContent()
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let draft = try buildImportDraft()
+                let _ = try await repository.importTimetableDraft(draft)
+                NotificationCenter.default.post(name: .timetableRepositoryDidChange, object: nil)
+                onRepositoryChanged()
+                isImporting = false
+                rebuildContent()
+                presentMessage(
+                    title: "导入完成",
+                    message: "已创建课表「\(draft.name)」，共 \(draft.courses.count) 门课程。"
+                ) { [weak self] in
+                    self?.navigationController?.popViewController(animated: true)
+                }
+            } catch {
+                isImporting = false
+                rebuildContent()
+                presentError(error)
+            }
+        }
+    }
+
+    private func buildImportDraft() throws -> ImportedTimetableDraft {
+        let selectedCalendars = availableCalendars.filter { selectedCalendarIDs.contains($0.calendarIdentifier) }
+        guard !selectedCalendars.isEmpty else {
+            throw AppError.validation("请至少选择一个日历。")
+        }
+
+        let rangeStart = calendar.startOfDay(for: rangeStartDate)
+        let rangeEnd = calendar.startOfDay(for: rangeEndDate)
+        guard let endExclusive = calendar.date(byAdding: .day, value: 1, to: rangeEnd) else {
+            throw AppError.validation("导入日期范围无效。")
+        }
+
+        let predicate = eventStore.predicateForEvents(withStart: rangeStart, end: endExclusive, calendars: selectedCalendars)
+        let events = eventStore.events(matching: predicate).sorted { $0.startDate < $1.startDate }
+
+        var skippedAllDay = 0
+        var skippedCrossDay = 0
+        var skippedInvalidTime = 0
+
+        struct PreparedEvent {
+            let key: String
+            let name: String
+            let location: String?
+            let note: String?
+            let day: Date
+            let weekday: Int
+            let startMinute: Int
+            let endMinute: Int
+        }
+
+        var preparedEvents: [PreparedEvent] = []
+        preparedEvents.reserveCapacity(events.count)
+
+        for event in events {
+            if event.isAllDay {
+                skippedAllDay += 1
+                continue
+            }
+
+            if !calendar.isDate(event.startDate, inSameDayAs: event.endDate) {
+                skippedCrossDay += 1
+                continue
+            }
+
+            let startMinute = minuteOfDay(event.startDate)
+            let endMinute = minuteOfDay(event.endDate)
+            guard endMinute > startMinute else {
+                skippedInvalidTime += 1
+                continue
+            }
+
+            let normalizedTitle = normalizeWhitespace(event.title)
+            let name = normalizedTitle.isEmpty ? "日历事件" : normalizedTitle
+            let location = normalizeOptionalText(event.location)
+            let note = normalizeOptionalText(event.notes)
+            let day = calendar.startOfDay(for: event.startDate)
+            let weekday = toInternalWeekday(event.startDate)
+            let key = [name, location ?? "", event.calendar.calendarIdentifier].joined(separator: "|")
+
+            preparedEvents.append(
+                PreparedEvent(
+                    key: key,
+                    name: name,
+                    location: location,
+                    note: note,
+                    day: day,
+                    weekday: weekday,
+                    startMinute: startMinute,
+                    endMinute: endMinute
+                )
+            )
+        }
+
+        guard !preparedEvents.isEmpty else {
+            throw AppError.validation("选择范围内没有可导入的日历事件（全天事件、跨天事件会被忽略）。")
+        }
+
+        guard let firstDay = preparedEvents.map(\.day).min(),
+              let lastDay = preparedEvents.map(\.day).max()
+        else {
+            throw AppError.validation("无法解析日历事件日期。")
+        }
+
+        let importStartDate = startOfWeekMonday(for: firstDay)
+        let daysDiff = calendar.dateComponents([.day], from: importStartDate, to: lastDay).day ?? 0
+        let weeksCount = max(1, daysDiff / 7 + 1)
+
+        var slotSet = Set<TimeSlot>()
+        for event in preparedEvents {
+            slotSet.insert(TimeSlot(startMinute: event.startMinute, endMinute: event.endMinute))
+        }
+        let slots = slotSet.sorted {
+            if $0.startMinute != $1.startMinute {
+                return $0.startMinute < $1.startMinute
+            }
+            return $0.endMinute < $1.endMinute
+        }
+        guard !slots.isEmpty else {
+            throw AppError.validation("导入失败：无法生成节次。")
+        }
+
+        var periodBySlot: [TimeSlot: Int] = [:]
+        for (index, slot) in slots.enumerated() {
+            periodBySlot[slot] = index + 1
+        }
+
+        let periods: [ImportedPeriodDraft] = slots.enumerated().map { index, slot in
+            ImportedPeriodDraft(
+                periodIndex: index + 1,
+                startTime: formatMinuteOfDay(slot.startMinute),
+                endTime: formatMinuteOfDay(slot.endMinute)
+            )
+        }
+
+        var buckets: [String: CourseBucket] = [:]
+        for event in preparedEvents {
+            let dayOffset = calendar.dateComponents([.day], from: importStartDate, to: event.day).day ?? 0
+            let week = max(1, dayOffset / 7 + 1)
+            guard week <= weeksCount else { continue }
+            let slot = TimeSlot(startMinute: event.startMinute, endMinute: event.endMinute)
+            guard let periodIndex = periodBySlot[slot] else { continue }
+
+            let occurrence = EventOccurrence(
+                week: week,
+                weekday: event.weekday,
+                startPeriod: periodIndex,
+                endPeriod: periodIndex,
+                location: event.location
+            )
+
+            if var bucket = buckets[event.key] {
+                bucket.occurrences.append(occurrence)
+                if bucket.note == nil {
+                    bucket.note = event.note
+                }
+                buckets[event.key] = bucket
+            } else {
+                buckets[event.key] = CourseBucket(
+                    name: event.name,
+                    location: event.location,
+                    note: event.note,
+                    occurrences: [occurrence]
+                )
+            }
+        }
+
+        var courses: [ImportedCourseDraft] = []
+        courses.reserveCapacity(buckets.count)
+
+        for bucket in buckets.values.sorted(by: { $0.name.localizedCompare($1.name) == .orderedAscending }) {
+            let groups = Dictionary(grouping: bucket.occurrences) {
+                MeetingSignature(
+                    weekday: $0.weekday,
+                    startPeriod: $0.startPeriod,
+                    endPeriod: $0.endPeriod,
+                    location: $0.location
+                )
+            }
+
+            var meetings: [ImportedMeetingDraft] = []
+            for (signature, occurrences) in groups {
+                let weeks = Array(Set(occurrences.map(\.week))).sorted()
+                for range in compressWeeksIntoRanges(weeks) {
+                    meetings.append(
+                        ImportedMeetingDraft(
+                            weekday: signature.weekday,
+                            startWeek: range.lowerBound,
+                            endWeek: range.upperBound,
+                            startPeriod: signature.startPeriod,
+                            endPeriod: signature.endPeriod,
+                            location: signature.location,
+                            weekType: .all
+                        )
+                    )
+                }
+            }
+
+            meetings.sort {
+                if $0.weekday != $1.weekday { return $0.weekday < $1.weekday }
+                if $0.startPeriod != $1.startPeriod { return $0.startPeriod < $1.startPeriod }
+                if $0.startWeek != $1.startWeek { return $0.startWeek < $1.startWeek }
+                return $0.endWeek < $1.endWeek
+            }
+
+            courses.append(
+                ImportedCourseDraft(
+                    name: bucket.name,
+                    teacher: nil,
+                    location: bucket.location,
+                    color: nil,
+                    note: bucket.note,
+                    meetings: meetings
+                )
+            )
+        }
+
+        guard !courses.isEmpty else {
+            throw AppError.validation("导入失败：没有可用课程数据。")
+        }
+
+        var warnings: [ImportWarning] = []
+        let skippedCount = skippedAllDay + skippedCrossDay + skippedInvalidTime
+        if skippedCount > 0 {
+            warnings.append(
+                ImportWarning(
+                    code: "calendar_event_skipped",
+                    message: "已忽略 \(skippedCount) 条事件（全天 \(skippedAllDay) 条、跨天 \(skippedCrossDay) 条、时间无效 \(skippedInvalidTime) 条）。",
+                    severity: .info
+                )
+            )
+        }
+
+        let normalizedName = normalizeWhitespace(timetableName)
+        let finalName = normalizedName.isEmpty ? "日历导入 \(formatDateInput(Date()))" : normalizedName
+        let selectedCalendarTitle = selectedCalendars.map(\.title).joined(separator: ", ")
+
+        return ImportedTimetableDraft(
+            name: finalName,
+            startDate: formatDateInput(importStartDate),
+            weeksCount: weeksCount,
+            periods: periods,
+            courses: courses,
+            warnings: warnings,
+            source: .init(
+                adapterId: "system-calendar",
+                adapterLabel: "系统日历",
+                capturedAt: nowISO8601String(),
+                url: "local://calendar",
+                title: selectedCalendarTitle.isEmpty ? nil : selectedCalendarTitle
+            )
+        )
+    }
+
+    private func presentNameEditor(from view: UIView) {
+        let input = AlertInputViewController(
+            title: "课表名称",
+            message: "导入后会创建新的课表。",
+            placeholder: "",
+            text: timetableName,
+            cancelButtonText: "取消",
+            doneButtonText: "确定"
+        ) { [weak self] value in
+            guard let self else { return }
+            timetableName = value
+            rebuildContent()
+        }
+        view.hostingViewController?.present(input, animated: true)
+    }
+
+    private func presentDateEditor(from view: UIView, editingStart: Bool) {
+        let selectedDate = editingStart ? rangeStartDate : rangeEndDate
+        let picker = AlertDatePickerViewController(
+            title: editingStart ? "开始日期" : "结束日期",
+            message: "选择导入日期。",
+            mode: .date,
+            selectedDate: selectedDate
+        ) { [weak self] date in
+            guard let self else { return }
+            let day = calendar.startOfDay(for: date)
+            if editingStart {
+                rangeStartDate = day
+                if rangeEndDate < rangeStartDate {
+                    rangeEndDate = rangeStartDate
+                }
+            } else {
+                rangeEndDate = day
+                if rangeEndDate < rangeStartDate {
+                    rangeStartDate = rangeEndDate
+                }
+            }
+            rebuildContent()
+        }
+        view.hostingViewController?.present(picker, animated: true)
+    }
+
+    private func toggleCalendarSelection(id: String, isOn: Bool) {
+        if isOn {
+            selectedCalendarIDs.insert(id)
+        } else {
+            selectedCalendarIDs.remove(id)
+        }
+        rebuildContent()
+    }
+
+    private var calendarPermissionActionDescription: String {
+        switch calendarAuthorizationStatus {
+        case .notDetermined:
+            return "点击申请读取日历权限。"
+        case .restricted:
+            return "系统限制，无法修改。"
+        case .denied:
+            return "已拒绝，点击前往系统设置开启。"
+        case .authorized:
+            return "已授权，可读取系统日历。"
+        @unknown default:
+            if #available(iOS 17.0, *) {
+                if calendarAuthorizationStatus == .writeOnly {
+                    return "仅写入权限，点击升级到可读取。"
+                }
+                if calendarAuthorizationStatus == .fullAccess {
+                    return "已授权，可读取系统日历。"
+                }
+            }
+            return "权限状态未知。"
+        }
+    }
+
+    private func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    private func minuteOfDay(_ date: Date) -> Int {
+        let hour = calendar.component(.hour, from: date)
+        let minute = calendar.component(.minute, from: date)
+        return hour * 60 + minute
+    }
+
+    private func toInternalWeekday(_ date: Date) -> Int {
+        let weekday = calendar.component(.weekday, from: date)
+        return weekday == 1 ? 7 : weekday - 1
+    }
+
+    private func startOfWeekMonday(for date: Date) -> Date {
+        let weekday = calendar.component(.weekday, from: date)
+        let offset = (weekday + 5) % 7
+        return calendar.date(byAdding: .day, value: -offset, to: date) ?? date
+    }
+
+    private func formatMinuteOfDay(_ minute: Int) -> String {
+        let hour = minute / 60
+        let minuteOfHour = minute % 60
+        return String(format: "%02d:%02d", hour, minuteOfHour)
+    }
+
+    private func compressWeeksIntoRanges(_ weeks: [Int]) -> [ClosedRange<Int>] {
+        guard !weeks.isEmpty else { return [] }
+        var ranges: [ClosedRange<Int>] = []
+        var start = weeks[0]
+        var end = weeks[0]
+
+        for week in weeks.dropFirst() {
+            if week == end + 1 {
+                end = week
+            } else {
+                ranges.append(start ... end)
+                start = week
+                end = week
+            }
+        }
+
+        ranges.append(start ... end)
+        return ranges
+    }
+
+    private func presentMessage(title: String, message: String, completion: (() -> Void)? = nil) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "知道了", style: .default) { _ in completion?() })
+        present(alert, animated: true)
+    }
+
+    private func presentError(_ error: Error) {
+        presentMessage(title: "导入失败", message: error.localizedDescription)
+    }
+
+    private func appendSwitchField(icon: String, title: String, description: String?, isOn: Bool, onToggle: @escaping (Bool) -> Void) {
+        let view = SettingsSwitchFieldView()
+        view.configure(icon: UIImage(systemName: icon))
+        view.configure(title: title)
+        view.configure(description: description ?? "")
+        view.configure(isOn: isOn, onToggle: onToggle)
+        stackView.addArrangedSubviewWithMargin(view)
+        stackView.addArrangedSubview(SeparatorView())
+    }
+
+    private func appendEditableField(icon: String, title: String, description: String?, value: String, placeholder: String, tap: @escaping (ConfigurableInfoView) -> Void) {
+        let view = ConfigurableInfoView()
+        view.configure(icon: UIImage(systemName: icon))
+        view.configure(title: title)
+        view.configure(description: description ?? "")
+        view.configure(value: value.isEmpty ? placeholder : value)
+        view.setTapBlock(tap)
+        stackView.addArrangedSubviewWithMargin(view)
+        stackView.addArrangedSubview(SeparatorView())
+    }
+}
+
+private func hasCalendarReadPermission(status: EKAuthorizationStatus) -> Bool {
+    if #available(iOS 17.0, *) {
+        return status == .fullAccess || status == .authorized
+    }
+    return status == .authorized
+}
+
+private func calendarAuthorizationStatusLabel(_ status: EKAuthorizationStatus) -> String {
+    if #available(iOS 17.0, *) {
+        switch status {
+        case .fullAccess:
+            return "已允许"
+        case .writeOnly:
+            return "仅写入"
+        case .notDetermined:
+            return "未授权"
+        case .restricted:
+            return "受限制"
+        case .denied:
+            return "已拒绝"
+        case .authorized:
+            return "已允许"
+        @unknown default:
+            return "未知"
+        }
+    } else {
+        switch status {
+        case .notDetermined:
+            return "未授权"
+        case .restricted:
+            return "受限制"
+        case .denied:
+            return "已拒绝"
+        case .authorized:
+            return "已允许"
+        @unknown default:
+            return "未知"
+        }
+    }
+}
+
+private func requestCalendarReadPermission(using eventStore: EKEventStore) async throws -> Bool {
+    if #available(iOS 17.0, *) {
+        return try await eventStore.requestFullAccessToEvents()
+    }
+
+    return try await withCheckedThrowingContinuation { continuation in
+        eventStore.requestAccess(to: .event) { granted, error in
+            if let error {
+                continuation.resume(throwing: error)
+                return
+            }
+            continuation.resume(returning: granted)
+        }
+    }
 }
 
 private final class SettingsSwitchFieldView: ConfigurableView {

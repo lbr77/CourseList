@@ -309,6 +309,8 @@
 				DEVELOPMENT_TEAM = HUAKL3MKPR;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "需要读取你的日历事件，用于导入为课表。";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "需要读取你的日历事件，用于导入为课表。";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -343,6 +345,8 @@
 				DEVELOPMENT_TEAM = HUAKL3MKPR;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "需要读取你的日历事件，用于导入为课表。";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "需要读取你的日历事件，用于导入为课表。";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

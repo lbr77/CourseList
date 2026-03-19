@@ -1,11 +1,7 @@
 import SwiftUI
 
-enum RootTab: Hashable {
-    case calendar
-    case settings
-}
-
 enum SheetRoute: Identifiable {
+    case settings
     case schoolPicker
     case importFlow(TimetableImportSchool)
     case timetableEditor(String?)
@@ -14,6 +10,7 @@ enum SheetRoute: Identifiable {
 
     var id: String {
         switch self {
+        case .settings: return "settings"
         case .schoolPicker: return "school-picker"
         case .importFlow(let school): return "import-\(school.id)"
         case .timetableEditor(let id): return "timetable-editor-\(id ?? "new")"
@@ -28,46 +25,24 @@ struct RootView: View {
     @EnvironmentObject private var container: AppContainer
     @StateObject private var viewModel = TimetableHomeViewModel()
     @State private var sheetRoute: SheetRoute?
-    @State private var selectedTab: RootTab = .calendar
 
     var body: some View {
         Group {
             if container.isBootstrapping {
                 bootstrappingView
             } else if let repository = container.repository {
-                TabView(selection: $selectedTab) {
-                    NavigationStack {
-                        TimetableHomeView(
-                            viewModel: viewModel,
-                            onImportTap: { sheetRoute = .schoolPicker },
-                            onNewTimetableTap: { sheetRoute = .timetableEditor(nil) },
-                            onManageTimetableTap: { sheetRoute = .timetableEditor(viewModel.currentTimetable?.id) },
-                            onNewCourseTap: { sheetRoute = .courseEditor(courseId: nil, timetableId: viewModel.currentTimetable?.id) },
-                            onEditCourseTap: { course, selection in
-                                sheetRoute = .coursePreview(courseId: course.id, selection: selection)
-                            }
-                        )
-                    }
-                    .tabItem {
-                        Label("课程", systemImage: "calendar")
-                    }
-                    .tag(RootTab.calendar)
-
-                    SettingsConfigurableView(
-                        repository: repository,
-                        currentTimetable: viewModel.currentTimetable,
-                        bootstrapError: container.bootstrapError,
+                NavigationStack {
+                    TimetableHomeView(
+                        viewModel: viewModel,
+                        onSettingsTap: { sheetRoute = .settings },
                         onImportTap: { sheetRoute = .schoolPicker },
                         onNewTimetableTap: { sheetRoute = .timetableEditor(nil) },
-                        onEditTimetableTap: { timetableId in sheetRoute = .timetableEditor(timetableId) },
-                        onRepositoryChanged: {
-                            Task { await viewModel.reload() }
+                        onManageTimetableTap: { sheetRoute = .timetableEditor(viewModel.currentTimetable?.id) },
+                        onNewCourseTap: { sheetRoute = .courseEditor(courseId: nil, timetableId: viewModel.currentTimetable?.id) },
+                        onEditCourseTap: { course, selection in
+                            sheetRoute = .coursePreview(courseId: course.id, selection: selection)
                         }
                     )
-                    .tabItem {
-                        Label("管理", systemImage: "gearshape")
-                    }
-                    .tag(RootTab.settings)
                 }
             } else {
                 startupErrorView
@@ -84,6 +59,20 @@ struct RootView: View {
         }) { route in
             if let repository = container.repository {
                 switch route {
+                case .settings:
+                    SettingsConfigurableView(
+                        repository: repository,
+                        currentTimetable: viewModel.currentTimetable,
+                        bootstrapError: container.bootstrapError,
+                        onImportTap: { sheetRoute = .schoolPicker },
+                        onNewTimetableTap: { sheetRoute = .timetableEditor(nil) },
+                        onEditTimetableTap: { timetableId in sheetRoute = .timetableEditor(timetableId) },
+                        onRepositoryChanged: {
+                            Task { await viewModel.reload() }
+                        },
+                        embedInNavigationController: true,
+                        onCloseTap: { sheetRoute = nil }
+                    )
                 case .schoolPicker:
                     ConfigurableSheetContainer(
                         rootController: SchoolPickerController.makeController(

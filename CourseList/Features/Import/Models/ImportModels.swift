@@ -97,5 +97,5 @@ struct TimetableImportSchool: Identifiable, Equatable, Sendable {
 }
 
 let timetableImportSchools: [TimetableImportSchool] = [
-    .init(id: "jlu", label: "吉林大学", adapterId: "jlu-vpn", defaultImportURL: "https://vpn.jlu.edu.cn")
+    .init(id: "jlu", label: "吉林大学（vpn)", adapterId: "jlu-vpn", defaultImportURL: "https://vpn.jlu.edu.cn")
 ]

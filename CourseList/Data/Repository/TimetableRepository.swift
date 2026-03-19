@@ -263,11 +263,13 @@ final class TimetableRepository: TimetableRepositoryProtocol {
         if let error = validateSaveCourseInput(input, periods: periods) { throw AppError.validation(error) }
         let courseId = input.id ?? createIdentifier(prefix: "course")
         let timestamp = nowISO8601String()
+        let requestedColor = normalizeOptionalText(input.color)
 
         try await manager.write { database in
             try database.run(transaction: { _ in
                 let existing = try database.getObject(fromTable: DatabaseTable.courses, where: CourseRecord.Properties.id == courseId) as CourseRecord?
                 if let existing {
+                    let resolvedColor = Self.resolveCourseColor(preferred: requestedColor, fallback: existing.color)
                     try database.update(
                         table: DatabaseTable.courses,
                         on: CourseRecord.Properties.name,
@@ -279,20 +281,21 @@ final class TimetableRepository: TimetableRepositoryProtocol {
                         with: input.name.trimmingCharacters(in: .whitespacesAndNewlines),
                         normalizeOptionalText(input.teacher),
                         normalizeOptionalText(input.location),
-                        normalizeOptionalText(input.color),
+                        resolvedColor,
                         normalizeOptionalText(input.note),
                         timestamp,
                         where: CourseRecord.Properties.id == existing.id
                     )
                     try database.delete(fromTable: DatabaseTable.courseMeetings, where: CourseMeetingRecord.Properties.courseId == existing.id)
                 } else {
+                    let resolvedColor = Self.resolveCourseColor(preferred: requestedColor, fallback: nil)
                     let record = CourseRecord()
                     record.id = courseId
                     record.timetableId = input.timetableId
                     record.name = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
                     record.teacher = normalizeOptionalText(input.teacher)
                     record.location = normalizeOptionalText(input.location)
-                    record.color = normalizeOptionalText(input.color)
+                    record.color = resolvedColor
                     record.note = normalizeOptionalText(input.note)
                     record.createdAt = timestamp
                     record.updatedAt = timestamp
@@ -361,7 +364,8 @@ final class TimetableRepository: TimetableRepositoryProtocol {
                 timetable.updatedAt = timestamp
                 try database.insert(timetable, intoTable: DatabaseTable.timetables)
                 try Self.insertPeriods(draft.periods.map { .init(periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime) }, timetableId: timetableId, database: database)
-                for courseDraft in draft.courses {
+                let importColorPalette = Self.courseColorPalette.shuffled()
+                for (index, courseDraft) in draft.courses.enumerated() {
                     let courseId = createIdentifier(prefix: "course")
                     let course = CourseRecord()
                     course.id = courseId
@@ -369,7 +373,7 @@ final class TimetableRepository: TimetableRepositoryProtocol {
                     course.name = courseDraft.name
                     course.teacher = normalizeOptionalText(courseDraft.teacher)
                     course.location = normalizeOptionalText(courseDraft.location)
-                    course.color = normalizeOptionalText(courseDraft.color)
+                    course.color = Self.importedCourseColor(at: index, palette: importColorPalette)
                     course.note = normalizeOptionalText(courseDraft.note)
                     course.createdAt = timestamp
                     course.updatedAt = timestamp
@@ -393,6 +397,43 @@ final class TimetableRepository: TimetableRepositoryProtocol {
 }
 
 private extension TimetableRepository {
+    static let courseColorPalette = [
+        "#3B82F6", "#10B981", "#F59E0B", "#EF4444",
+        "#8B5CF6", "#06B6D4", "#84CC16", "#F97316",
+        "#EC4899", "#14B8A6", "#6366F1", "#22C55E"
+    ]
+
+    static func resolveCourseColor(preferred: String?, fallback: String?) -> String {
+        if let normalizedPreferred = normalizeHexColor(preferred) {
+            return normalizedPreferred
+        }
+        if let normalizedFallback = normalizeHexColor(fallback) {
+            return normalizedFallback
+        }
+        return randomPaletteColor()
+    }
+
+    static func importedCourseColor(at index: Int, palette: [String]) -> String {
+        guard !palette.isEmpty else { return randomPaletteColor() }
+        return palette[index % palette.count]
+    }
+
+    static func randomPaletteColor() -> String {
+        courseColorPalette.randomElement() ?? "#3B82F6"
+    }
+
+    static func normalizeHexColor(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let noHash = trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed
+        let uppercased = noHash.uppercased()
+        guard uppercased.count == 6 || uppercased.count == 8 else { return nil }
+        let allowed = CharacterSet(charactersIn: "0123456789ABCDEF")
+        guard uppercased.unicodeScalars.allSatisfy({ allowed.contains($0) }) else { return nil }
+        return "#" + uppercased
+    }
+
     func getRequiredTimetable(id: String) async throws -> Timetable {
         guard let timetable = try await manager.read({ database in
             let record = try database.getObject(

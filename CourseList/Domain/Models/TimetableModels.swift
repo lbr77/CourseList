@@ -138,6 +138,17 @@ struct DayScheduleItem: Identifiable, Codable, Equatable, Sendable {
     }
 }
 
+struct CoursePreviewSelectionContext: Codable, Equatable, Sendable {
+    let courseId: String
+    let week: Int
+    let weekday: Int
+    let startPeriod: Int
+    let endPeriod: Int
+    let startTime: String?
+    let endTime: String?
+    let location: String?
+}
+
 struct WeekScheduleDay: Identifiable, Codable, Equatable, Sendable {
     let id: Int
     let weekday: Int

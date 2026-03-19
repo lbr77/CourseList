@@ -8,7 +8,7 @@ struct TimetableHomeView: View {
     let onNewTimetableTap: () -> Void
     let onManageTimetableTap: () -> Void
     let onNewCourseTap: () -> Void
-    let onEditCourseTap: (CourseWithMeetings) -> Void
+    let onEditCourseTap: (CourseWithMeetings, CoursePreviewSelectionContext) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -19,6 +19,7 @@ struct TimetableHomeView: View {
                 periods: viewModel.periods,
                 courses: viewModel.courses,
                 schedule: viewModel.schedule,
+                scheduleCache: viewModel.scheduleCache,
                 onSelectCourse: onEditCourseTap,
                 onVisibleDateChange: { date in
                     visibleDate = date
@@ -47,7 +48,7 @@ struct TimetableHomeView: View {
 
     private var fixedTodayHeader: some View {
         let today = Date()
-        let isCurrentWeek = Calendar(identifier: .gregorian).isDate(today, equalTo: visibleDate, toGranularity: .weekOfYear)
+        let isCurrentWeek = makeTimetableDisplayCalendar().isDate(today, equalTo: visibleDate, toGranularity: .weekOfYear)
 
         return HStack(alignment: .firstTextBaseline, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {

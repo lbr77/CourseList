@@ -73,6 +73,8 @@ public struct TimelineStyle {
     public var splitMinuteInterval: Int = 15
     public var verticalDiff: Double = 50
     public var verticalInset: Double = 10
+    public var visibleStartHour: Int = 0
+    public var visibleEndHour: Int = 24
     public var leadingInset: Double = 53
     public var trailingInset: Double = 0
     public var eventGap: Double = 0

@@ -52,7 +52,7 @@ public final class WeekTimelineView: UIView {
     }
 
     public var fullHeight: Double {
-        style.verticalInset * 2 + style.verticalDiff * 24
+        style.verticalInset * 2 + style.verticalDiff * visibleHourSpan
     }
 
     public var columnWidth: Double {
@@ -65,6 +65,19 @@ public final class WeekTimelineView: UIView {
 
     public var eventEditingSnappingBehavior: EventEditingSnappingBehavior = SnapTo15MinuteIntervals() {
         didSet { eventEditingSnappingBehavior.calendar = calendar }
+    }
+
+    private var visibleStartHour: Int {
+        style.visibleStartHour.clamped(to: 0 ... 23)
+    }
+
+    private var visibleEndHour: Int {
+        let clampedEnd = style.visibleEndHour.clamped(to: 1 ... 24)
+        return max(clampedEnd, visibleStartHour + 1)
+    }
+
+    private var visibleHourSpan: Double {
+        Double(visibleEndHour - visibleStartHour)
     }
 
     private var times: [String] { is24hClock ? _24hTimes : _12hTimes }
@@ -181,6 +194,7 @@ public final class WeekTimelineView: UIView {
         default: is24hClock = calendar.locale?.uses24hClock ?? Locale.autoupdatingCurrent.uses24hClock
         }
         backgroundColor = style.backgroundColor
+        setNeedsLayout()
         setNeedsDisplay()
     }
 
@@ -232,8 +246,8 @@ public final class WeekTimelineView: UIView {
         let offset = 0.5 - center
         let context = UIGraphicsGetCurrentContext()
 
-        for (hour, time) in times.enumerated() {
-            let hourFloat = Double(hour)
+        for hour in visibleStartHour ... visibleEndHour {
+            let hourFloat = Double(hour - visibleStartHour)
             context?.saveGState()
             context?.setStrokeColor(style.separatorColor.cgColor)
             context?.setLineWidth(lineHeight)
@@ -244,9 +258,9 @@ public final class WeekTimelineView: UIView {
             context?.strokePath()
             context?.restoreGState()
 
-            if hour == removedHourIndex { continue }
+            if hour == visibleEndHour || hour == removedHourIndex || hour >= times.count { continue }
             let timeRect = timeLabelRect(centeredAt: y, font: style.font)
-            NSString(string: time).draw(in: timeRect, withAttributes: attributes)
+            NSString(string: times[hour]).draw(in: timeRect, withAttributes: attributes)
 
             if accentedMinute != 0, hour == accentedHour {
                 let accentedY = y + style.verticalDiff * (Double(accentedMinute) / 60)
@@ -295,6 +309,15 @@ public final class WeekTimelineView: UIView {
             nowLine.alpha = 0
             return
         }
+
+        let nowMinuteOfDay = component(.hour, from: currentTime) * 60 + component(.minute, from: currentTime)
+        let visibleStartMinute = visibleStartHour * 60
+        let visibleEndMinute = visibleEndHour * 60
+        guard (visibleStartMinute ... visibleEndMinute).contains(nowMinuteOfDay) else {
+            nowLine.alpha = 0
+            return
+        }
+
         bringSubviewToFront(nowLine)
         nowLine.alpha = 1
         let size = CGSize(width: bounds.size.width, height: 20)
@@ -375,20 +398,25 @@ public final class WeekTimelineView: UIView {
     public func dateToY(_ date: Date) -> Double {
         let hour = component(.hour, from: date)
         let minute = component(.minute, from: date)
-        let hourY = Double(hour) * style.verticalDiff + style.verticalInset
-        let minuteY = Double(minute) * style.verticalDiff / 60
-        return hourY + minuteY
+        let totalHours = Double(hour) + Double(minute) / 60
+        let relativeHours = totalHours - Double(visibleStartHour)
+        return style.verticalInset + relativeHours * style.verticalDiff
     }
 
     public func yToDate(_ y: Double, for date: Date) -> Date {
         let timeValue = y - style.verticalInset
-        var hour = Int(timeValue / style.verticalDiff)
-        let fullHourPoints = Double(hour) * style.verticalDiff
-        let minuteDiff = timeValue - fullHourPoints
-        let minute = Int(minuteDiff / style.verticalDiff * 60)
+        let absoluteHour = timeValue / style.verticalDiff + Double(visibleStartHour)
+        var hour = Int(floor(absoluteHour))
+        let minute = Int((absoluteHour - floor(absoluteHour)) * 60)
         var dayOffset = 0
-        if hour > 23 { dayOffset += 1; hour -= 24 }
-        else if hour < 0 { dayOffset -= 1; hour += 24 }
+        while hour > 23 {
+            dayOffset += 1
+            hour -= 24
+        }
+        while hour < 0 {
+            dayOffset -= 1
+            hour += 24
+        }
         let offsetDate = calendar.date(byAdding: DateComponents(day: dayOffset), to: date)!
         return calendar.date(bySettingHour: hour, minute: minute.clamped(to: 0...59), second: 0, of: offsetDate)!
     }

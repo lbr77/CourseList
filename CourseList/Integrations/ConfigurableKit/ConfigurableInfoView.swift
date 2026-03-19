@@ -41,6 +41,11 @@ final class ConfigurableInfoView: ConfigurableView {
         valueLabel.setAttributedTitle(attrString, for: .normal)
     }
 
+    func configure(menu: UIMenu?) {
+        valueLabel.menu = menu
+        valueLabel.showsMenuAsPrimaryAction = menu != nil
+    }
+
     @discardableResult
     func setTapBlock(_ block: @escaping (ConfigurableInfoView) -> Void) -> Self {
         onTapBlock = block
@@ -48,6 +53,7 @@ final class ConfigurableInfoView: ConfigurableView {
     }
 
     @objc private func tapped() {
+        guard valueLabel.menu == nil else { return }
         onTapBlock(self)
     }
 

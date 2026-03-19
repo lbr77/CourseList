@@ -9,6 +9,7 @@ enum SheetRoute: Identifiable {
     case schoolPicker
     case importFlow(TimetableImportSchool)
     case timetableEditor(String?)
+    case coursePreview(courseId: String, selection: CoursePreviewSelectionContext)
     case courseEditor(courseId: String?, timetableId: String?)
 
     var id: String {
@@ -16,6 +17,8 @@ enum SheetRoute: Identifiable {
         case .schoolPicker: return "school-picker"
         case .importFlow(let school): return "import-\(school.id)"
         case .timetableEditor(let id): return "timetable-editor-\(id ?? "new")"
+        case .coursePreview(let courseId, let selection):
+            return "course-preview-\(courseId)-\(selection.week)-\(selection.weekday)-\(selection.startPeriod)-\(selection.endPeriod)"
         case .courseEditor(let courseId, let timetableId): return "course-editor-\(courseId ?? timetableId ?? "new")"
         }
     }
@@ -40,7 +43,9 @@ struct RootView: View {
                             onNewTimetableTap: { sheetRoute = .timetableEditor(nil) },
                             onManageTimetableTap: { sheetRoute = .timetableEditor(viewModel.currentTimetable?.id) },
                             onNewCourseTap: { sheetRoute = .courseEditor(courseId: nil, timetableId: viewModel.currentTimetable?.id) },
-                            onEditCourseTap: { course in sheetRoute = .courseEditor(courseId: course.id, timetableId: course.timetableId) }
+                            onEditCourseTap: { course, selection in
+                                sheetRoute = .coursePreview(courseId: course.id, selection: selection)
+                            }
                         )
                     }
                     .tabItem {
@@ -112,6 +117,19 @@ struct RootView: View {
                             repository: repository,
                             timetableId: timetableId,
                             onFinished: { sheetRoute = nil }
+                        )
+                    )
+                    .ignoresSafeArea()
+                case .coursePreview(let courseId, let selection):
+                    ConfigurableSheetContainer(
+                        rootController: CoursePreviewCoordinator.makeController(
+                            repository: repository,
+                            courseId: courseId,
+                            selection: selection,
+                            onFinished: { sheetRoute = nil },
+                            onEditCourse: { course in
+                                sheetRoute = .courseEditor(courseId: course.id, timetableId: course.timetableId)
+                            }
                         )
                     )
                     .ignoresSafeArea()

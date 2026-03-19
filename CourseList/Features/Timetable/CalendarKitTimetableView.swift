@@ -6,35 +6,48 @@ struct CalendarKitTimetableView: UIViewControllerRepresentable {
     let periods: [TimetablePeriod]
     let courses: [CourseWithMeetings]
     let schedule: WeekSchedule
-    let onSelectCourse: (CourseWithMeetings) -> Void
+    let scheduleCache: [Int: WeekSchedule]
+    let onSelectCourse: (CourseWithMeetings, CoursePreviewSelectionContext) -> Void
     let onVisibleDateChange: (Date) -> Void
     let scrollToCurrentWeekToken: Int
 
     func makeUIViewController(context: Context) -> TimetableWeekViewController {
         let controller = TimetableWeekViewController()
-        controller.onSelectCourseId = { courseId in
-            guard let course = courses.first(where: { $0.id == courseId }) else { return }
-            onSelectCourse(course)
+        controller.onSelectCourseSelection = { selection in
+            guard let course = courses.first(where: { $0.id == selection.courseId }) else { return }
+            onSelectCourse(course, selection)
         }
         controller.onVisibleDateChange = onVisibleDateChange
         controller.scrollToCurrentWeekToken = scrollToCurrentWeekToken
-        controller.apply(timetable: timetable, periods: periods, courses: courses, schedule: schedule)
+        controller.apply(
+            timetable: timetable,
+            periods: periods,
+            courses: courses,
+            schedule: schedule,
+            scheduleCache: scheduleCache
+        )
         return controller
     }
 
     func updateUIViewController(_ uiViewController: TimetableWeekViewController, context: Context) {
-        uiViewController.onSelectCourseId = { courseId in
-            guard let course = courses.first(where: { $0.id == courseId }) else { return }
-            onSelectCourse(course)
+        uiViewController.onSelectCourseSelection = { selection in
+            guard let course = courses.first(where: { $0.id == selection.courseId }) else { return }
+            onSelectCourse(course, selection)
         }
         uiViewController.onVisibleDateChange = onVisibleDateChange
         uiViewController.scrollToCurrentWeekToken = scrollToCurrentWeekToken
-        uiViewController.apply(timetable: timetable, periods: periods, courses: courses, schedule: schedule)
+        uiViewController.apply(
+            timetable: timetable,
+            periods: periods,
+            courses: courses,
+            schedule: schedule,
+            scheduleCache: scheduleCache
+        )
     }
 }
 
 final class TimetableWeekViewController: WeekViewController {
-    var onSelectCourseId: ((String) -> Void)?
+    var onSelectCourseSelection: ((CoursePreviewSelectionContext) -> Void)?
     var onVisibleDateChange: ((Date) -> Void)?
     var scrollToCurrentWeekToken: Int = 0 {
         didSet {
@@ -49,24 +62,42 @@ final class TimetableWeekViewController: WeekViewController {
     private var periods: [TimetablePeriod] = []
     private var courses: [CourseWithMeetings] = []
     private var schedule = WeekSchedule(week: 1, days: (1 ... 7).map { WeekScheduleDay(weekday: $0) })
+    private var scheduleCache: [Int: WeekSchedule] = [:]
     private var lastAppliedSignature = ""
     private var lastResolvedHeight: CGFloat = 0
+    private var lastResolvedVisibleHourRange = TimetableVisibleHourRange.default
+    private var lastResolvedWeekStart = TimetableWeekStart.default
     private var lastHandledScrollToCurrentWeekToken = 0
 
-    func apply(timetable: Timetable?, periods: [TimetablePeriod], courses: [CourseWithMeetings], schedule: WeekSchedule) {
+    override func loadView() {
+        let weekStart = loadTimetableWeekStart()
+        lastResolvedWeekStart = weekStart
+        weekView = WeekView(calendar: makeTimetableDisplayCalendar(weekStart: weekStart))
+        view = weekView
+    }
+
+    func apply(
+        timetable: Timetable?,
+        periods: [TimetablePeriod],
+        courses: [CourseWithMeetings],
+        schedule: WeekSchedule,
+        scheduleCache: [Int: WeekSchedule]
+    ) {
         let previousTimetableId = self.timetable?.id
-        let selectedDate = weekView.state?.selectedDate
+        let selectedDate = isViewLoaded ? weekView.state?.selectedDate : nil
 
         self.timetable = timetable
         self.periods = periods.sorted { $0.periodIndex < $1.periodIndex }
         self.courses = courses
         self.schedule = schedule
+        self.scheduleCache = scheduleCache
 
         let signature = [
             timetable?.id ?? "no-timetable",
             timetable?.updatedAt ?? "no-updated-at",
             periodsSignature(self.periods),
-            scheduleSignature(schedule)
+            scheduleSignature(schedule),
+            scheduleCacheSignature(scheduleCache)
         ].joined(separator: "|")
 
         guard signature != lastAppliedSignature else { return }
@@ -84,6 +115,12 @@ final class TimetableWeekViewController: WeekViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appearanceDidChange),
+            name: .timetableAppearanceDidChange,
+            object: nil
+        )
 
         applyResponsiveStyle(for: view.bounds.height)
     }
@@ -95,26 +132,60 @@ final class TimetableWeekViewController: WeekViewController {
 
     private func applyResponsiveStyle(for availableHeight: CGFloat) {
         guard availableHeight > 0 else { return }
-        guard abs(availableHeight - lastResolvedHeight) > 0.5 else { return }
+        let visibleHourRange = loadTimetableVisibleHourRange()
+        let didHeightChange = abs(availableHeight - lastResolvedHeight) > 0.5
+        let didVisibleRangeChange = visibleHourRange != lastResolvedVisibleHourRange
+        guard didHeightChange || didVisibleRangeChange else { return }
+
         lastResolvedHeight = availableHeight
+        lastResolvedVisibleHourRange = visibleHourRange
 
         let timelineHeight = max(0, Double(availableHeight) - weekView.headerHeight)
         let verticalInset = TimetableCalendarLayout.timelineVerticalInset
         let verticalDiff = max(
             TimetableCalendarLayout.minimumVerticalDiff,
-            (timelineHeight - verticalInset * 2) / 24
+            (timelineHeight - verticalInset * 2) / Double(visibleHourRange.span)
         )
 
         var style = CalendarStyle()
         style.timeline.leadingInset = TimetableCalendarLayout.timeAxisLeadingInset
         style.timeline.verticalInset = verticalInset
         style.timeline.verticalDiff = verticalDiff
+        style.timeline.visibleStartHour = visibleHourRange.startHour
+        style.timeline.visibleEndHour = visibleHourRange.endHour
         style.timeline.font = .monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
         style.timeline.timeIndicator.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         updateStyle(style)
     }
+
+    @objc private func appearanceDidChange() {
+        updateDisplayCalendarIfNeeded()
+        applyResponsiveStyle(for: view.bounds.height)
+    }
+
+    private func updateDisplayCalendarIfNeeded() {
+        let weekStart = loadTimetableWeekStart()
+        guard weekStart != lastResolvedWeekStart else { return }
+        lastResolvedWeekStart = weekStart
+
+        guard isViewLoaded else { return }
+        let selectedDate = weekView.state?.selectedDate ?? Date()
+
+        weekView = WeekView(calendar: makeTimetableDisplayCalendar(weekStart: weekStart))
+        view = weekView
+        view.backgroundColor = .clear
+        dataSource = self
+        delegate = self
+        lastResolvedHeight = 0
+        lastResolvedVisibleHourRange = TimetableVisibleHourRange.default
+        reloadData()
+        move(to: resolvedDisplayDate(preferred: selectedDate))
+        onVisibleDateChange?(weekView.state?.selectedDate ?? Date())
+    }
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        applyResponsiveStyle(for: view.bounds.height)
         move(to: resolvedDisplayDate(preferred: weekView.state?.selectedDate ?? Date()))
         onVisibleDateChange?(weekView.state?.selectedDate ?? Date())
     }
@@ -126,15 +197,25 @@ final class TimetableWeekViewController: WeekViewController {
     override func eventsForDate(_ date: Date) -> [EventDescriptor] {
         guard timetable != nil else { return [] }
 
+        let weekSchedule = scheduleForDate(date)
         let weekday = weekdayIndex(for: date)
         let dayOnly = startOfDay(for: date)
-        let items = schedule.days.first(where: { $0.weekday == weekday })?.items ?? []
+        let items = weekSchedule.days.first(where: { $0.weekday == weekday })?.items ?? []
 
         return items.compactMap { item in
             let interval = meetingDateInterval(startPeriod: item.startPeriod, endPeriod: item.endPeriod, on: dayOnly)
             let event = Event()
             event.dateInterval = interval
-            event.userInfo = item.courseId
+            event.userInfo = CoursePreviewSelectionContext(
+                courseId: item.courseId,
+                week: weekSchedule.week,
+                weekday: weekday,
+                startPeriod: item.startPeriod,
+                endPeriod: item.endPeriod,
+                startTime: periods.first(where: { $0.periodIndex == item.startPeriod })?.startTime,
+                endTime: periods.first(where: { $0.periodIndex == item.endPeriod })?.endTime,
+                location: item.location
+            )
             if let color = UIColor(hex: item.color) {
                 event.color = color
             }
@@ -145,8 +226,8 @@ final class TimetableWeekViewController: WeekViewController {
 
     override func dayViewDidSelectEventView(_ eventView: EventView) {
         guard let event = eventView.descriptor as? Event,
-              let courseId = event.userInfo as? String else { return }
-        onSelectCourseId?(courseId)
+              let selection = event.userInfo as? CoursePreviewSelectionContext else { return }
+        onSelectCourseSelection?(selection)
     }
 
     private func shouldResetVisibleDate(previousTimetableId: String?, selectedDate: Date?) -> Bool {
@@ -182,7 +263,7 @@ final class TimetableWeekViewController: WeekViewController {
     }
 
     private func scheduleSignature(_ schedule: WeekSchedule) -> String {
-        schedule.days
+        let daysSignature = schedule.days
             .map { day in
                 let items = day.items
                     .map {
@@ -192,6 +273,36 @@ final class TimetableWeekViewController: WeekViewController {
                 return "\(day.weekday)[\(items)]"
             }
             .joined(separator: "|")
+        return "\(schedule.week){\(daysSignature)}"
+    }
+
+    private func scheduleCacheSignature(_ cache: [Int: WeekSchedule]) -> String {
+        cache.keys
+            .sorted()
+            .compactMap { week in
+                guard let schedule = cache[week] else { return nil }
+                return scheduleSignature(schedule)
+            }
+            .joined(separator: "#")
+    }
+
+    private func scheduleForDate(_ date: Date) -> WeekSchedule {
+        guard let timetable,
+              let week = timetableWeek(for: date, timetable: timetable)
+        else {
+            return schedule
+        }
+        if let cached = scheduleCache[week] {
+            return cached
+        }
+        if schedule.week == week {
+            return schedule
+        }
+        return emptySchedule(week: week)
+    }
+
+    private func emptySchedule(week: Int) -> WeekSchedule {
+        WeekSchedule(week: week, days: (1 ... 7).map { WeekScheduleDay(weekday: $0) })
     }
 
     private func weekdayIndex(for date: Date) -> Int {

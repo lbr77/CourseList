@@ -31,13 +31,18 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
         target: self,
         action: #selector(reloadTapped)
     )
-    private let addressField = UITextField()
-    private lazy var addressItem = UIBarButtonItem(customView: addressField)
+    private let addressHostView = UIView()
+    private let addressDisplayButton = UIButton(type: .system)
+    private let addressDisplayLabel = UILabel()
+    private let addressInputField = UITextField()
+    private lazy var addressItem = UIBarButtonItem(customView: addressHostView)
     private var addressWidthConstraint: NSLayoutConstraint?
+    private var isAddressEditing = false
 
     private let webContainerView = UIView()
     private let webView: WKWebView = {
         let configuration = WKWebViewConfiguration()
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
         return WKWebView(frame: .zero, configuration: configuration)
     }()
 
@@ -142,25 +147,62 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
     }
 
     private func setupToolbar() {
-        addressField.borderStyle = .roundedRect
-        addressField.placeholder = "https://"
-        addressField.returnKeyType = .go
-        addressField.clearButtonMode = .whileEditing
-        addressField.keyboardType = .URL
-        addressField.autocapitalizationType = .none
-        addressField.autocorrectionType = .no
-        addressField.delegate = self
-        addressField.text = viewModel.sourceURL
-        addressField.translatesAutoresizingMaskIntoConstraints = false
-        addressWidthConstraint = addressField.widthAnchor.constraint(equalToConstant: 220)
+        addressHostView.backgroundColor = .secondarySystemBackground
+        addressHostView.layer.cornerRadius = 16
+        addressHostView.layer.cornerCurve = .continuous
+        addressHostView.layer.borderWidth = 1
+        addressHostView.layer.borderColor = UIColor.separator.cgColor
+        addressHostView.translatesAutoresizingMaskIntoConstraints = false
+        addressWidthConstraint = addressHostView.widthAnchor.constraint(equalToConstant: 230)
         addressWidthConstraint?.isActive = true
+
+        addressDisplayButton.translatesAutoresizingMaskIntoConstraints = false
+        addressDisplayButton.addTarget(self, action: #selector(beginAddressEditing), for: .touchUpInside)
+        addressHostView.addSubview(addressDisplayButton)
+
+        addressDisplayLabel.translatesAutoresizingMaskIntoConstraints = false
+        addressDisplayLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        addressDisplayLabel.textColor = .label
+        addressDisplayLabel.textAlignment = .center
+        addressDisplayLabel.lineBreakMode = .byTruncatingTail
+        addressDisplayButton.addSubview(addressDisplayLabel)
+
+        addressInputField.translatesAutoresizingMaskIntoConstraints = false
+        addressInputField.placeholder = "https://"
+        addressInputField.returnKeyType = .go
+        addressInputField.clearButtonMode = .whileEditing
+        addressInputField.keyboardType = .URL
+        addressInputField.autocapitalizationType = .none
+        addressInputField.autocorrectionType = .no
+        addressInputField.delegate = self
+        addressInputField.text = viewModel.sourceURL
+        addressInputField.isHidden = true
+        addressHostView.addSubview(addressInputField)
+
+        NSLayoutConstraint.activate([
+            addressHostView.heightAnchor.constraint(equalToConstant: 36),
+
+            addressDisplayButton.topAnchor.constraint(equalTo: addressHostView.topAnchor),
+            addressDisplayButton.leadingAnchor.constraint(equalTo: addressHostView.leadingAnchor),
+            addressDisplayButton.trailingAnchor.constraint(equalTo: addressHostView.trailingAnchor),
+            addressDisplayButton.bottomAnchor.constraint(equalTo: addressHostView.bottomAnchor),
+
+            addressDisplayLabel.leadingAnchor.constraint(equalTo: addressDisplayButton.leadingAnchor, constant: 12),
+            addressDisplayLabel.trailingAnchor.constraint(equalTo: addressDisplayButton.trailingAnchor, constant: -12),
+            addressDisplayLabel.centerYAnchor.constraint(equalTo: addressDisplayButton.centerYAnchor),
+
+            addressInputField.topAnchor.constraint(equalTo: addressHostView.topAnchor),
+            addressInputField.leadingAnchor.constraint(equalTo: addressHostView.leadingAnchor, constant: 12),
+            addressInputField.trailingAnchor.constraint(equalTo: addressHostView.trailingAnchor, constant: -12),
+            addressInputField.bottomAnchor.constraint(equalTo: addressHostView.bottomAnchor),
+        ])
 
         toolbarItems = [
             backItem,
             UIBarButtonItem.flexibleSpace(),
-            reloadItem,
-            UIBarButtonItem.flexibleSpace(),
             addressItem,
+            UIBarButtonItem.flexibleSpace(),
+            reloadItem,
         ]
     }
 
@@ -168,10 +210,32 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = true
+        installWindowOpenHijackScriptIfNeeded()
         viewModel.proxy.webView = webView
         if let url = URL(string: viewModel.school.defaultImportURL) {
             webView.load(URLRequest(url: url))
         }
+    }
+
+    private func installWindowOpenHijackScriptIfNeeded() {
+        let source = """
+        (() => {
+          if (window.__courseListOpenHijackInstalled) return;
+          window.__courseListOpenHijackInstalled = true;
+          window.open = function(url) {
+            if (typeof url === 'string' && url.trim().length > 0 && url !== 'about:blank') {
+              try {
+                window.location.href = new URL(url, window.location.href).toString();
+              } catch (_) {
+                window.location.href = url;
+              }
+            }
+            return window;
+          };
+        })();
+        """
+        let script = WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: false)
+        webView.configuration.userContentController.addUserScript(script)
     }
 
     private func setupBindings() {
@@ -282,29 +346,35 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
     private func updateNavigationState() {
         backItem.isEnabled = viewModel.canGoBack
 
-        navigationItem.prompt = viewModel.pageTitle.isEmpty ? nil : viewModel.pageTitle
-        if !addressField.isFirstResponder {
-            addressField.text = viewModel.sourceURL
+        navigationItem.prompt = nil
+        addressDisplayLabel.text = compactAddressTitle()
+        if !isAddressEditing {
+            addressInputField.text = viewModel.sourceURL
         }
 
         let title: String
         let enabled: Bool
-        switch viewModel.phase {
-        case .preview:
-            title = "导入"
-            enabled = viewModel.draftErrors.isEmpty
-        case .capturing:
-            title = "识别中"
-            enabled = false
-        case .importing:
-            title = "导入中"
-            enabled = false
-        case .done:
-            title = "完成"
+        if isAddressEditing {
+            title = "前往"
             enabled = true
-        default:
-            title = "识别"
-            enabled = true
+        } else {
+            switch viewModel.phase {
+            case .preview:
+                title = "导入"
+                enabled = viewModel.draftErrors.isEmpty
+            case .capturing:
+                title = "识别中"
+                enabled = false
+            case .importing:
+                title = "导入中"
+                enabled = false
+            case .done:
+                title = "完成"
+                enabled = true
+            default:
+                title = "识别"
+                enabled = true
+            }
         }
         primaryItem.title = title
         primaryItem.isEnabled = enabled
@@ -325,11 +395,62 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
         viewModel.proxy.reload()
     }
 
-    private func loadAddressFromField() {
-        guard let value = addressField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
-            return
+    @objc private func beginAddressEditing() {
+        guard !isAddressEditing else { return }
+        isAddressEditing = true
+        addressInputField.text = viewModel.sourceURL
+        addressDisplayButton.isHidden = true
+        addressInputField.isHidden = false
+        addressInputField.becomeFirstResponder()
+        DispatchQueue.main.async { [weak self] in
+            self?.addressInputField.selectAll(nil)
         }
-        viewModel.proxy.load(value)
+        updateNavigationState()
+    }
+
+    private func normalizeInputURL(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return nil }
+
+        let hasScheme = trimmed.range(of: #"^[a-zA-Z][a-zA-Z\d+.-]*:"#, options: .regularExpression) != nil
+        let candidate = hasScheme ? trimmed : "https://\(trimmed)"
+        guard let url = URL(string: candidate), url.scheme != nil else {
+            return nil
+        }
+        return url.absoluteString
+    }
+
+    @discardableResult
+    private func commitAddressInput() -> Bool {
+        guard isAddressEditing else { return false }
+
+        isAddressEditing = false
+        addressDisplayButton.isHidden = false
+        addressInputField.isHidden = true
+        addressInputField.resignFirstResponder()
+
+        guard let nextURL = normalizeInputURL(addressInputField.text) else {
+            addressInputField.text = viewModel.sourceURL
+            updateNavigationState()
+            return false
+        }
+
+        addressInputField.text = nextURL
+        if nextURL != viewModel.sourceURL {
+            viewModel.proxy.load(nextURL)
+        }
+        updateNavigationState()
+        return true
+    }
+
+    private func compactAddressTitle() -> String {
+        if !viewModel.pageTitle.isEmpty {
+            return viewModel.pageTitle
+        }
+        if let host = URL(string: viewModel.sourceURL)?.host, !host.isEmpty {
+            return host
+        }
+        return viewModel.school.label
     }
 
     @objc private func closeTapped() {
@@ -341,6 +462,10 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
     }
 
     @objc private func primaryTapped() {
+        if isAddressEditing {
+            commitAddressInput()
+            return
+        }
         switch viewModel.phase {
         case .preview:
             guard viewModel.draftErrors.isEmpty else { return }
@@ -378,21 +503,35 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
         for navigationAction: WKNavigationAction,
         windowFeatures: WKWindowFeatures
     ) -> WKWebView? {
-        if navigationAction.targetFrame == nil, let url = navigationAction.request.url {
-            webView.load(URLRequest(url: url))
+        guard navigationAction.targetFrame == nil else { return nil }
+
+        if let url = navigationAction.request.url {
+            let raw = url.absoluteString.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if !raw.isEmpty, raw != "about:blank" {
+                webView.load(navigationAction.request)
+                return nil
+            }
         }
-        return nil
+
+        // Some sites call `window.open('', '_blank')` first, then set location on returned window.
+        // Returning current webView lets subsequent location assignment stay in this window.
+        return webView
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        loadAddressFromField()
-        textField.resignFirstResponder()
-        return true
+        commitAddressInput()
+        return false
+    }
+
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        if isAddressEditing {
+            commitAddressInput()
+        }
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        let width = max(150, min(320, view.bounds.width - 180))
+        let width = max(160, min(360, view.bounds.width - 196))
         addressWidthConstraint?.constant = width
     }
 }

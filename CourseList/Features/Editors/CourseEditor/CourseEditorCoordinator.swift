@@ -516,24 +516,6 @@ private final class CourseEditorController: CourseEditorReloadableStackScrollCon
         }
 
         appendEditableField(
-            icon: "paintpalette",
-            title: "颜色",
-            description: nil,
-            value: coordinator.state.color,
-            placeholder: "#5B8FF9"
-        ) { [weak coordinator] view in
-            coordinator?.presentEditor(
-                for: \CourseEditorCoordinator.State.color,
-                from: view,
-                title: "编辑颜色",
-                message: "",
-                placeholder: "#5B8FF9"
-            ) { output in
-                view.configure(value: output.isEmpty ? "未设置" : output)
-            }
-        }
-
-        appendEditableField(
             icon: "note.text",
             title: "备注",
             description: nil,

@@ -7,6 +7,77 @@ enum TimetablePhase {
     case unknown
 }
 
+struct TimetableVisibleHourRange: Equatable {
+    static let `default` = TimetableVisibleHourRange(startHour: 0, endHour: 24)
+
+    let startHour: Int
+    let endHour: Int
+
+    var span: Int {
+        endHour - startHour
+    }
+
+    init(startHour: Int, endHour: Int) {
+        let clampedStart = max(0, min(23, startHour))
+        let clampedEnd = max(clampedStart + 1, min(24, endHour))
+        self.startHour = clampedStart
+        self.endHour = clampedEnd
+    }
+}
+
+enum TimetableWeekStart: Int, CaseIterable {
+    case sunday = 1
+    case monday = 2
+
+    static var `default`: TimetableWeekStart {
+        Calendar.autoupdatingCurrent.firstWeekday == 1 ? .sunday : .monday
+    }
+
+    var label: String {
+        switch self {
+        case .sunday: "周天开始"
+        case .monday: "周一开始"
+        }
+    }
+}
+
+extension Notification.Name {
+    static let timetableAppearanceDidChange = Notification.Name("CourseList.timetableAppearanceDidChange")
+}
+
+func loadTimetableVisibleHourRange(defaults: UserDefaults = .standard) -> TimetableVisibleHourRange {
+    let startKey = "timetable.visibleHourRange.startHour"
+    let endKey = "timetable.visibleHourRange.endHour"
+
+    let start = defaults.object(forKey: startKey) as? Int ?? TimetableVisibleHourRange.default.startHour
+    let end = defaults.object(forKey: endKey) as? Int ?? TimetableVisibleHourRange.default.endHour
+    return TimetableVisibleHourRange(startHour: start, endHour: end)
+}
+
+func saveTimetableVisibleHourRange(_ range: TimetableVisibleHourRange, defaults: UserDefaults = .standard) {
+    let normalized = TimetableVisibleHourRange(startHour: range.startHour, endHour: range.endHour)
+    defaults.set(normalized.startHour, forKey: "timetable.visibleHourRange.startHour")
+    defaults.set(normalized.endHour, forKey: "timetable.visibleHourRange.endHour")
+}
+
+func loadTimetableWeekStart(defaults: UserDefaults = .standard) -> TimetableWeekStart {
+    let key = "timetable.weekStart"
+    guard let rawValue = defaults.object(forKey: key) as? Int else {
+        return TimetableWeekStart.default
+    }
+    return TimetableWeekStart(rawValue: rawValue) ?? TimetableWeekStart.default
+}
+
+func saveTimetableWeekStart(_ weekStart: TimetableWeekStart, defaults: UserDefaults = .standard) {
+    defaults.set(weekStart.rawValue, forKey: "timetable.weekStart")
+}
+
+func makeTimetableDisplayCalendar(weekStart: TimetableWeekStart = loadTimetableWeekStart()) -> Calendar {
+    var calendar = Calendar.autoupdatingCurrent
+    calendar.firstWeekday = weekStart.rawValue
+    return calendar
+}
+
 func createIdentifier(prefix: String) -> String {
     let raw = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
     return "\(prefix)_\(raw)"

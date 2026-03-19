@@ -71,10 +71,7 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
                     title: "外观设置",
                     explain: "主题、颜色与显示方式",
                     ephemeralAnnotation: .page {
-                        UIHostingController(rootView: PlaceholderSettingsPageView(
-                            title: "外观设置",
-                            description: "这里后续放主题、颜色、课表显示样式等设置。"
-                        ))
+                        TimetableAppearanceSettingsController()
                     }
                 ),
                 ConfigurableObject(
@@ -93,11 +90,9 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
                     title: "关于",
                     explain: appVersionSummary,
                     ephemeralAnnotation: .page {
-                        UIHostingController(
-                            rootView: AboutSettingsView(
-                                currentTimetable: currentTimetable,
-                                bootstrapError: bootstrapError
-                            )
+                        AboutSettingsController(
+                            currentTimetable: currentTimetable,
+                            bootstrapError: bootstrapError
                         )
                     }
                 ),
@@ -138,33 +133,57 @@ private struct PlaceholderSettingsPageView: View {
     }
 }
 
-private struct AboutSettingsView: View {
+@MainActor
+private final class AboutSettingsController: SettingsReloadableStackScrollController {
     let currentTimetable: Timetable?
     let bootstrapError: String?
 
-    var body: some View {
-        List {
-            Section("应用") {
-                LabeledContent("名称", value: "CourseList")
-                LabeledContent("版本", value: appVersion)
-                LabeledContent("构建号", value: appBuild)
-            }
+    init(currentTimetable: Timetable?, bootstrapError: String?) {
+        self.currentTimetable = currentTimetable
+        self.bootstrapError = bootstrapError
+        super.init(nibName: nil, bundle: nil)
+        title = "关于"
+    }
 
-            Section("状态") {
-                LabeledContent("数据库", value: bootstrapError == nil ? "正常" : "初始化失败")
-                if let currentTimetable {
-                    LabeledContent("当前课表", value: currentTimetable.name)
-                } else {
-                    LabeledContent("当前课表", value: "无")
-                }
-                if let bootstrapError {
-                    Text(bootstrapError)
-                        .font(.footnote)
-                        .foregroundStyle(.orange)
-                }
-            }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func buildContent() {
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionHeaderView().with(header: "应用")
+        ) { $0.bottom /= 2 }
+        stackView.addArrangedSubview(SeparatorView())
+
+        appendInfoField(icon: "app", title: "名称", value: "CourseList")
+        appendInfoField(icon: "tag", title: "版本", value: appVersion)
+        appendInfoField(icon: "number", title: "构建号", value: appBuild)
+
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionHeaderView().with(header: "状态")
+        ) { $0.bottom /= 2 }
+        stackView.addArrangedSubview(SeparatorView())
+
+        appendInfoField(
+            icon: "internaldrive",
+            title: "数据库",
+            value: bootstrapError == nil ? "正常" : "初始化失败"
+        )
+        appendInfoField(
+            icon: "calendar",
+            title: "当前课表",
+            value: currentTimetable?.name ?? "无"
+        )
+
+        if let bootstrapError {
+            let footer = ConfigurableSectionFooterView().with(footer: bootstrapError)
+            footer.titleLabel.textColor = .systemOrange
+            stackView.addArrangedSubviewWithMargin(footer) { $0.top /= 2 }
+            stackView.addArrangedSubview(SeparatorView())
         }
-        .navigationTitle("关于")
+
+        stackView.addArrangedSubviewWithMargin(UIView())
     }
 
     private var appVersion: String {
@@ -173,6 +192,162 @@ private struct AboutSettingsView: View {
 
     private var appBuild: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "未知构建"
+    }
+
+    private func appendInfoField(icon: String, title: String, value: String) {
+        let view = ConfigurableInfoView()
+        view.configure(icon: UIImage(systemName: icon))
+        view.configure(title: title)
+        view.configure(description: "")
+        view.valueLabel.setAttributedTitle(nil, for: .normal)
+        view.valueLabel.setTitle(value, for: .normal)
+        view.valueLabel.setTitleColor(.secondaryLabel, for: .normal)
+        stackView.addArrangedSubviewWithMargin(view)
+        stackView.addArrangedSubview(SeparatorView())
+    }
+}
+
+@MainActor
+private final class TimetableAppearanceSettingsController: SettingsReloadableStackScrollController {
+    private var visibleHourRange = TimetableVisibleHourRange.default
+    private var weekStart = TimetableWeekStart.default
+
+    init() {
+        super.init(nibName: nil, bundle: nil)
+        title = "外观设置"
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        visibleHourRange = loadTimetableVisibleHourRange()
+        weekStart = loadTimetableWeekStart()
+        rebuildContent()
+    }
+
+    override func buildContent() {
+        appendEditableField(
+            icon: "clock",
+            title: "显示开始时间",
+            description: "课表顶部显示的起始小时",
+            value: hourLabel(visibleHourRange.startHour),
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentStartHourPicker(from: view)
+        }
+
+        appendEditableField(
+            icon: "clock.arrow.trianglehead.counterclockwise.rotate.90",
+            title: "显示结束时间",
+            description: "课表底部显示到该小时",
+            value: hourLabel(visibleHourRange.endHour),
+            placeholder: ""
+        ) { [weak self] view in
+            self?.presentEndHourPicker(from: view)
+        }
+
+        appendMenuField(
+            icon: "calendar",
+            title: "每周起始日",
+            description: "设置周视图从周天或周一开始",
+            value: weekStart.label,
+            menu: weekStartMenu()
+        )
+
+        stackView.addArrangedSubview(SeparatorView())
+        stackView.addArrangedSubviewWithMargin(
+            ConfigurableSectionFooterView().with(
+                footer: "课表会按该范围拉伸显示，适合课程集中在白天时提高可读性。"
+            )
+        )
+        stackView.addArrangedSubviewWithMargin(UIView())
+    }
+
+    private func presentStartHourPicker(from view: UIView) {
+        let options = Array(0 ... 23)
+        let picker = SettingsAlertOptionPickerViewController(
+            title: "显示开始时间",
+            message: "选择课表从几点开始显示。",
+            options: options.map(hourLabel),
+            selectedIndex: options.firstIndex(of: visibleHourRange.startHour) ?? 0
+        ) { [weak self] selectedIndex in
+            guard let self else { return }
+            let selectedStart = options[selectedIndex]
+            let adjustedEnd = max(visibleHourRange.endHour, selectedStart + 1)
+            updateVisibleHourRange(TimetableVisibleHourRange(startHour: selectedStart, endHour: adjustedEnd))
+        }
+        view.hostingViewController?.present(picker, animated: true)
+    }
+
+    private func presentEndHourPicker(from view: UIView) {
+        let options = Array((visibleHourRange.startHour + 1) ... 24)
+        let selectedIndex = options.firstIndex(of: visibleHourRange.endHour) ?? max(0, options.count - 1)
+        let picker = SettingsAlertOptionPickerViewController(
+            title: "显示结束时间",
+            message: "选择课表显示到几点。",
+            options: options.map(hourLabel),
+            selectedIndex: selectedIndex
+        ) { [weak self] index in
+            guard let self else { return }
+            updateVisibleHourRange(TimetableVisibleHourRange(startHour: visibleHourRange.startHour, endHour: options[index]))
+        }
+        view.hostingViewController?.present(picker, animated: true)
+    }
+
+    private func updateVisibleHourRange(_ newRange: TimetableVisibleHourRange) {
+        visibleHourRange = newRange
+        saveTimetableVisibleHourRange(newRange)
+        NotificationCenter.default.post(name: .timetableAppearanceDidChange, object: nil)
+        rebuildContent()
+    }
+
+    private func updateWeekStart(_ newWeekStart: TimetableWeekStart) {
+        weekStart = newWeekStart
+        saveTimetableWeekStart(newWeekStart)
+        NotificationCenter.default.post(name: .timetableAppearanceDidChange, object: nil)
+        rebuildContent()
+    }
+
+    private func hourLabel(_ hour: Int) -> String {
+        String(format: "%02d:00", hour)
+    }
+
+    private func appendEditableField(icon: String, title: String, description: String?, value: String, placeholder: String, tap: @escaping (ConfigurableInfoView) -> Void) {
+        let view = ConfigurableInfoView()
+        view.configure(icon: UIImage(systemName: icon))
+        view.configure(title: title)
+        view.configure(description: description ?? "")
+        view.configure(value: value.isEmpty ? placeholder : value)
+        view.setTapBlock(tap)
+        stackView.addArrangedSubviewWithMargin(view)
+        stackView.addArrangedSubview(SeparatorView())
+    }
+
+    private func appendMenuField(icon: String, title: String, description: String?, value: String, menu: UIMenu) {
+        let view = ConfigurableInfoView()
+        view.configure(icon: UIImage(systemName: icon))
+        view.configure(title: title)
+        view.configure(description: description ?? "")
+        view.configure(value: value)
+        view.configure(menu: menu)
+        stackView.addArrangedSubviewWithMargin(view)
+        stackView.addArrangedSubview(SeparatorView())
+    }
+
+    private func weekStartMenu() -> UIMenu {
+        let actions = TimetableWeekStart.allCases.map { option in
+            UIAction(
+                title: option.label,
+                state: option == weekStart ? .on : .off
+            ) { [weak self] _ in
+                self?.updateWeekStart(option)
+            }
+        }
+        return UIMenu(options: [.displayInline], children: actions)
     }
 }
 

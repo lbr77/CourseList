@@ -119,7 +119,7 @@ struct CourseListWidgetEntryView: View {
 
     private var header: some View {
         HStack {
-            Text(entry.snapshot.timetable?.name ?? "课程表")
+            Text(headerDateText)
                 .font(.headline)
                 .lineLimit(1)
             Spacer(minLength: 8)
@@ -195,6 +195,37 @@ struct CourseListWidgetEntryView: View {
             return "第\(course.startPeriod)-\(course.endPeriod)节"
         }
     }
+
+    private var headerDateText: String {
+        if let text = formatHeaderDate(entry.snapshot.today.date) {
+            return text
+        }
+
+        return fallbackHeaderDate(from: entry.date)
+    }
+
+    private func formatHeaderDate(_ value: String) -> String? {
+        let parser = DateFormatter()
+        parser.calendar = Calendar(identifier: .gregorian)
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.timeZone = .current
+        parser.dateFormat = "yyyy-MM-dd"
+
+        guard let date = parser.date(from: value) else {
+            return nil
+        }
+
+        return fallbackHeaderDate(from: date)
+    }
+
+    private func fallbackHeaderDate(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.timeZone = .current
+        formatter.dateFormat = "M.d EEE"
+        return formatter.string(from: date)
+    }
 }
 
 struct CourseListWidget: Widget {
@@ -203,10 +234,24 @@ struct CourseListWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: CourseListWidgetProvider()) { entry in
             CourseListWidgetEntryView(entry: entry)
+                .widgetContainerBackground()
         }
         .configurationDisplayName("课程表")
         .description("显示今天课程与下一节课程。")
         .supportedFamilies([.systemSmall, .systemMedium])
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func widgetContainerBackground() -> some View {
+        if #available(iOSApplicationExtension 17.0, *) {
+            containerBackground(for: .widget) {
+                Color(.systemBackground)
+            }
+        } else {
+            background(Color(.systemBackground))
+        }
     }
 }
 

@@ -325,7 +325,7 @@ final class TimetableRepository: TimetableRepositoryProtocol {
     func getWeekCourses(timetableId: String, week: Int) async throws -> WeekCoursesSnapshot {
         let timetable = try await getRequiredTimetable(id: timetableId)
         guard (1 ... timetable.weeksCount).contains(week) else {
-            throw AppError.validation("周次超出范围：\(week)，有效范围为 1-\(timetable.weeksCount)")
+            throw AppError.validation(L10n.tr("Week out of range: %d, valid range is 1-%d", week, timetable.weeksCount))
         }
 
         async let periodsTask = listPeriods(timetableId: timetableId)
@@ -442,7 +442,7 @@ private extension TimetableRepository {
             ) as TimetableRecord?
             return record.map(Self.mapTimetable)
         }) else {
-            throw AppError.notFound("未找到对应课表：\(id)")
+            throw AppError.notFound(L10n.tr("Corresponding class schedule not found: %@", id))
         }
 
         return timetable

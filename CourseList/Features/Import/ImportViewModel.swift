@@ -42,10 +42,10 @@ final class ImportViewModel: ObservableObject {
             let context = try await inspectContext()
             guard let adapter = preferredAdapter ?? ImportAdapterRegistry.match(context: context) else {
                 phase = .unsupported
-                unsupportedReason = "当前页面暂不支持自动导入。请先进入学校课表页面后重试。"
+                unsupportedReason = L10n.tr("The current page does not support automatic import.")
                 return
             }
-            guard let raw = try await proxy.evaluate(adapter.captureJavaScript) else { throw AppError.importCapture("页面抓取返回为空。") }
+            guard let raw = try await proxy.evaluate(adapter.captureJavaScript) else { throw AppError.importCapture(L10n.tr("Page scraping returns empty.")) }
             let normalized = try adapter.normalize(rawPayload: raw, context: context)
             let errors = validateImportedTimetableDraft(normalized)
             draft = normalized
@@ -82,7 +82,7 @@ final class ImportViewModel: ObservableObject {
         }))();
         """
         guard let raw = try await proxy.evaluate(script) as? [String: Any] else {
-            throw AppError.importCapture("无法读取当前页面内容。")
+            throw AppError.importCapture(L10n.tr("Unable to read the current page content."))
         }
         return ImportContext(
             url: raw["url"] as? String ?? sourceURL,

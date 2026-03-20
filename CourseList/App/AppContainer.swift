@@ -32,7 +32,7 @@ final class AppContainer: ObservableObject {
             CourseWidgetSyncService.shared.start(repository: repository)
         } catch {
             repository = nil
-            bootstrapError = "数据库初始化失败：\(error.localizedDescription)"
+            bootstrapError = L10n.tr("Database initialization failed: %@", error.localizedDescription)
         }
         isBootstrapping = false
     }

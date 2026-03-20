@@ -15,7 +15,7 @@ final class WebViewProxy: ObservableObject {
     func goBack() { if webView?.canGoBack == true { webView?.goBack() } }
 
     func evaluate(_ script: String) async throws -> Any? {
-        guard let webView else { throw AppError.importCapture("WebView 尚未准备好。") }
+        guard let webView else { throw AppError.importCapture(L10n.tr("WebView is not ready yet.")) }
         return try await webView.evaluateJavaScript(script)
     }
 }

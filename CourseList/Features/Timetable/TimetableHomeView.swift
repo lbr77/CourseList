@@ -35,8 +35,8 @@ struct TimetableHomeView: View {
         .padding(.top, 20)
         .padding(.bottom, 12)
         .background(Color(.systemBackground))
-        .alert("错误", isPresented: Binding(get: { viewModel.errorMessage != nil }, set: { if !$0 { viewModel.errorMessage = nil } })) {
-            Button("确定", role: .cancel) {}
+        .alert(L10n.tr("mistake"), isPresented: Binding(get: { viewModel.errorMessage != nil }, set: { if !$0 { viewModel.errorMessage = nil } })) {
+            Button(L10n.tr("Sure"), role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
@@ -70,7 +70,7 @@ struct TimetableHomeView: View {
             }
 
             if !isCurrentWeek {
-                Button("回到本周") {
+                Button(L10n.tr("back to this week")) {
                     scrollToCurrentWeekToken += 1
                 }
                 .font(.subheadline.weight(.semibold))
@@ -85,14 +85,14 @@ struct TimetableHomeView: View {
                         .frame(width: 36, height: 36)
                 }
                 .buttonStyle(.glass)
-                .accessibilityLabel("设置")
+                .accessibilityLabel(L10n.tr("set up"))
             } else {
                 Button(action: onSettingsTap) {
                     Image(systemName: "gearshape")
                         .font(.system(size: 16, weight: .semibold))
                         .frame(width: 36, height: 36)
                 }
-                .accessibilityLabel("设置")
+                .accessibilityLabel(L10n.tr("set up"))
             }
             
         }
@@ -100,12 +100,16 @@ struct TimetableHomeView: View {
 
     private func titleString(for date: Date) -> String {
         let calendar = Calendar(identifier: .gregorian)
-        return "\(calendar.component(.month, from: date))月\(calendar.component(.day, from: date))日"
+        return L10n.tr(
+            "%d月%d日",
+            calendar.component(.month, from: date),
+            calendar.component(.day, from: date)
+        )
     }
 
     private func weekdayString(for date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.locale = .autoupdatingCurrent
         formatter.dateFormat = "EEE"
         return formatter.string(from: date)
     }

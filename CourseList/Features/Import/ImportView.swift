@@ -43,7 +43,7 @@ struct ImportView: View {
                 }
                 .disabled(!viewModel.canGoBack)
 
-                TextField("输入地址", text: $addressInput)
+                TextField(L10n.tr("Enter address"), text: $addressInput)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .textFieldStyle(.roundedBorder)
@@ -60,7 +60,7 @@ struct ImportView: View {
 
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(viewModel.pageTitle.isEmpty ? "网页登录" : viewModel.pageTitle)
+                    Text(viewModel.pageTitle.isEmpty ? L10n.tr("Web login") : viewModel.pageTitle)
                         .font(.subheadline.bold())
                     Text(viewModel.sourceURL)
                         .font(.caption)
@@ -68,7 +68,7 @@ struct ImportView: View {
                         .lineLimit(1)
                 }
                 Spacer()
-                Button("识别页面") {
+                Button(L10n.tr("Identify page")) {
                     Task { await viewModel.inspectAndCapture() }
                 }
                 .buttonStyle(.borderedProminent)
@@ -83,21 +83,21 @@ struct ImportView: View {
         VStack(alignment: .leading, spacing: 12) {
             switch viewModel.phase {
             case .browsing:
-                Text("请先登录学校系统并进入课表页面，然后点击“识别页面”。")
+                Text(L10n.tr("Please log in to the school system first and enter the class schedule page, then click \"Identify Page\"."))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             case .capturing:
                 HStack {
                     ProgressView()
-                    Text("正在识别并抓取当前页面…")
+                    Text(L10n.tr("Recognizing and crawling the current page..."))
                 }
             case .unsupported:
-                Text(viewModel.unsupportedReason ?? "当前页面不支持导入。")
+                Text(viewModel.unsupportedReason ?? L10n.tr("The current page does not support import."))
                     .foregroundStyle(.orange)
             case .preview, .importing, .done:
                 previewPanel
             case .error:
-                Text(viewModel.errorMessage ?? "导入失败。")
+                Text(viewModel.errorMessage ?? L10n.tr("Import failed."))
                     .foregroundStyle(.red)
             }
         }
@@ -110,11 +110,11 @@ struct ImportView: View {
     private var previewPanel: some View {
         if let draft = viewModel.draft {
             VStack(alignment: .leading, spacing: 8) {
-                Text("导入预览")
+                Text(L10n.tr("Import preview"))
                     .font(.headline)
-                Text("课表：\(draft.name)")
-                Text("开学日期：\(draft.startDate) · 周数：\(draft.weeksCount)")
-                Text("节次：\(draft.periods.count) · 课程：\(draft.courses.count)")
+                Text(L10n.tr("Class schedule: %@", draft.name))
+                Text(L10n.tr("Start date: %@ · Week number: %d", draft.startDate, draft.weeksCount))
+                Text(L10n.tr("Section: %d · Course: %d", draft.periods.count, draft.courses.count))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 if !viewModel.draftErrors.isEmpty {
@@ -130,9 +130,9 @@ struct ImportView: View {
                         .foregroundStyle(warning.severity == .warning ? .orange : .secondary)
                 }
                 HStack {
-                    Button("关闭") { dismiss() }
+                    Button(L10n.tr("closure")) { dismiss() }
                         .buttonStyle(.bordered)
-                    Button(viewModel.phase == .importing ? "导入中…" : "确认导入") {
+                    Button(viewModel.phase == .importing ? L10n.tr("Importing…") : L10n.tr("Confirm import")) {
                         Task {
                             if await viewModel.importDraft() {
                                 onImported()

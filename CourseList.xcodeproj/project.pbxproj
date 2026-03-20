@@ -175,9 +175,10 @@
 				};
 			};
 			buildConfigurationList = 86C052802F6AC25300D62DDD /* Build configuration list for PBXProject "CourseList" */;
-			developmentRegion = en;
+			developmentRegion = "en-US";
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				"en-US",
 				en,
 				Base,
 				de,
@@ -255,26 +256,6 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXSourcesBuildPhase section */
-		86C052812F6AC25300D62DDD /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B20000080000000000000001 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C30000010000000000000001 /* CourseListWidget.swift in Sources */,
-				C30000010000000000000002 /* CourseWidgetSnapshot.swift in Sources */,
-				C30000010000000000000003 /* CourseWidgetSnapshotStore.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXSourcesBuildPhase section */
-
 /* Begin PBXShellScriptBuildPhase section */
 		C30000030000000000000001 /* Remove Widget Principal Class */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -295,6 +276,26 @@
 			shellScript = "if [ -f \"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\" ]; then\n  /usr/libexec/PlistBuddy -c \"Delete :NSExtension:NSExtensionPrincipalClass\" \"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\" >/dev/null 2>&1 || true\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		86C052812F6AC25300D62DDD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B20000080000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C30000010000000000000001 /* CourseListWidget.swift in Sources */,
+				C30000010000000000000002 /* CourseWidgetSnapshot.swift in Sources */,
+				C30000010000000000000003 /* CourseWidgetSnapshotStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
 		B20000060000000000000001 /* PBXTargetDependency */ = {

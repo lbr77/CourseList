@@ -9,7 +9,7 @@ final class DatabaseManager {
 
     init(fileManager: FileManager = .default) throws {
         guard let documentDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            throw AppError.database("无法定位应用文稿目录。")
+            throw AppError.database(L10n.tr("Unable to locate app document directory."))
         }
         let sqliteDirectory = documentDirectory.appendingPathComponent("SQLite", isDirectory: true)
         try fileManager.createDirectory(at: sqliteDirectory, withIntermediateDirectories: true)
@@ -37,7 +37,7 @@ final class DatabaseManager {
     private static func bootstrapSchemaIfNeeded(at path: String) throws {
         var pointer: OpaquePointer?
         guard sqlite3_open(path, &pointer) == SQLITE_OK, let pointer else {
-            let message = pointer.flatMap { String(cString: sqlite3_errmsg($0)) } ?? "无法打开 SQLite 数据库。"
+            let message = pointer.flatMap { String(cString: sqlite3_errmsg($0)) } ?? L10n.tr("Unable to open SQLite database.")
             if let pointer { sqlite3_close(pointer) }
             throw AppError.database(message)
         }

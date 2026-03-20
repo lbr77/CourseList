@@ -32,7 +32,7 @@ final class TimetableEditorCoordinator: NSObject {
 
     static func makeController(repository: TimetableRepositoryProtocol, timetableId: String?, onFinished: @escaping () -> Void) -> UIViewController {
         let coordinator = TimetableEditorCoordinator(repository: repository, state: placeholderState(), onFinished: onFinished)
-        let loadingController = TimetableEditorLoadingViewController(title: timetableId == nil ? "新建课表" : "编辑课表")
+        let loadingController = TimetableEditorLoadingViewController(title: timetableId == nil ? L10n.tr("Create a new class schedule") : L10n.tr("Edit class schedule"))
         loadingController.navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: coordinator, action: #selector(TimetableEditorCoordinator.cancelTapped))
 
         let navigationController = RetainedNavigationController(rootViewController: loadingController)
@@ -119,7 +119,7 @@ final class TimetableEditorCoordinator: NSObject {
     }
 
     var titleText: String {
-        state.timetableId == nil ? "新建课表" : "编辑课表"
+        state.timetableId == nil ? L10n.tr("Create a new class schedule") : L10n.tr("Edit class schedule")
     }
 
     var canManageCourses: Bool {
@@ -127,16 +127,16 @@ final class TimetableEditorCoordinator: NSObject {
     }
 
     var periodsSummary: String {
-        "共 \(state.periods.count) 节"
+        L10n.tr("%d periods", state.periods.count)
     }
 
     var periodTemplateSummary: String {
-        let prefix = state.periodTemplateName ?? "自定义节次"
-        return "\(prefix) · 共 \(state.periods.count) 节"
+        let prefix = state.periodTemplateName ?? L10n.tr("Custom sections")
+        return L10n.tr("%@ · Total %d sections", prefix, state.periods.count)
     }
 
     var coursesSummary: String {
-        canManageCourses ? "管理本课表中的课程" : "保存课表后可管理课程"
+        canManageCourses ? L10n.tr("Manage courses in this schedule") : L10n.tr("Courses can be managed after saving the schedule")
     }
 
     func makePeriodTemplateController() -> UIViewController {
@@ -158,8 +158,8 @@ final class TimetableEditorCoordinator: NSObject {
     func makeCoursesController() -> UIViewController {
         guard let timetableId = state.timetableId else {
             return MessageStackController(
-                titleText: "课程设置",
-                message: "请先保存课表，然后再管理课程。"
+                titleText: L10n.tr("Curriculum"),
+                message: L10n.tr("Please save the class schedule first and then manage the course.")
             )
         }
         return CourseManagementController(repository: repository, timetableId: timetableId)
@@ -171,8 +171,8 @@ final class TimetableEditorCoordinator: NSObject {
             message: message,
             placeholder: placeholder,
             text: state[keyPath: keyPath],
-            cancelButtonText: "取消",
-            doneButtonText: "确定"
+            cancelButtonText: L10n.tr("Cancel"),
+            doneButtonText: L10n.tr("Sure")
         ) { [weak self] output in
             guard let self else { return }
             state[keyPath: keyPath] = output
@@ -200,9 +200,9 @@ final class TimetableEditorCoordinator: NSObject {
     func presentWeeksCountEditor(from view: UIView, onChanged: ((Int) -> Void)? = nil) {
         let selectedWeeksCount = Self.weeksCountRange.contains(state.weeksCount) ? state.weeksCount : 16
         let picker = AlertOptionPickerViewController(
-            title: "编辑总周数",
-            message: "上下滑动选择总周数。",
-            options: Self.weeksCountRange.map { "\($0) 周" },
+            title: L10n.tr("Total number of weeks edited"),
+            message: L10n.tr("Swipe up or down to select the total number of weeks."),
+            options: Self.weeksCountRange.map { L10n.tr("Week %d", $0) },
             selectedIndex: selectedWeeksCount - 1
         ) { [weak self] selectedIndex in
             guard let self else { return }
@@ -235,13 +235,13 @@ final class TimetableEditorCoordinator: NSObject {
 
     func promptDelete() {
         let alert = AlertViewController(
-            title: "删除课表",
-            message: "确定删除这个课表吗？此操作无法撤销。"
+            title: L10n.tr("Delete class schedule"),
+            message: L10n.tr("Are you sure you want to delete this class schedule?")
         ) { [weak self] context in
-            context.addAction(title: "取消") {
+            context.addAction(title: L10n.tr("Cancel")) {
                 context.dispose()
             }
-            context.addAction(title: "删除", attribute: .accent) {
+            context.addAction(title: L10n.tr("delete"), attribute: .accent) {
                 context.dispose {
                     guard let self else { return }
                     await self.deleteTimetable()
@@ -277,10 +277,10 @@ final class TimetableEditorCoordinator: NSObject {
 
     func presentError(_ error: Error) {
         let alert = AlertViewController(
-            title: "操作失败",
+            title: L10n.tr("Operation failed"),
             message: error.localizedDescription
         ) { context in
-            context.addAction(title: "确定", attribute: .accent) {
+            context.addAction(title: L10n.tr("Sure"), attribute: .accent) {
                 context.dispose()
             }
         }
@@ -321,25 +321,25 @@ private final class TimetableEditorController: ReloadableStackScrollController {
     override func buildContent() {
         appendEditableField(
             icon: "calendar",
-            title: "课表名称",
+            title: L10n.tr("Class schedule name"),
             description: nil,
-            value: coordinator.state.name.isEmpty ? "未设置" : coordinator.state.name,
-            placeholder: "大三上"
+            value: coordinator.state.name.isEmpty ? L10n.tr("not set") : coordinator.state.name,
+            placeholder: L10n.tr("Junior year")
         ) { [weak coordinator] view in
             coordinator?.presentEditor(
                 for: \TimetableEditorCoordinator.State.name,
                 from: view,
-                title: "编辑课表名称",
-                message: "课表的显示名称。",
-                placeholder: "大三上"
+                title: L10n.tr("Edit class name"),
+                message: L10n.tr("The display name of the class schedule."),
+                placeholder: L10n.tr("Junior year")
             ) { output in
-                view.configure(value: output.isEmpty ? "未设置" : output)
+                view.configure(value: output.isEmpty ? L10n.tr("not set") : output)
             }
         }
 
         appendEditableField(
             icon: "calendar.badge.clock",
-            title: "开学日期",
+            title: L10n.tr("School start date"),
             description: nil,
             value: coordinator.state.startDate,
             placeholder: "2026-03-02"
@@ -347,28 +347,28 @@ private final class TimetableEditorController: ReloadableStackScrollController {
             coordinator?.presentDateEditor(
                 for: \TimetableEditorCoordinator.State.startDate,
                 from: view,
-                title: "编辑开学日期",
-                message: "请选择开学日期。"
+                title: L10n.tr("Edit start date"),
+                message: L10n.tr("Please select a start date.")
             ) { output in
-                view.configure(value: output.isEmpty ? "未设置" : output)
+                view.configure(value: output.isEmpty ? L10n.tr("not set") : output)
             }
         }
 
         appendEditableField(
             icon: "number",
-            title: "总周数",
+            title: L10n.tr("total number of weeks"),
             description: nil,
-            value: "\(coordinator.state.weeksCount) 周",
-            placeholder: "16 周"
+            value: L10n.tr("Week %d", coordinator.state.weeksCount),
+            placeholder: L10n.tr("16 weeks")
         ) { [weak coordinator] view in
             coordinator?.presentWeeksCountEditor(from: view) { weeksCount in
-                view.configure(value: "\(weeksCount) 周")
+                view.configure(value: L10n.tr("Week %d", weeksCount))
             }
         }
 
         appendPage(
             icon: "clock.badge",
-            title: "节次模板",
+            title: L10n.tr("Section template"),
             description: coordinator.periodTemplateSummary
         ) { [weak coordinator] in
             coordinator?.makePeriodTemplateController()
@@ -376,7 +376,7 @@ private final class TimetableEditorController: ReloadableStackScrollController {
 
         appendPage(
             icon: "book.closed",
-            title: "课程设置",
+            title: L10n.tr("Curriculum"),
             description: coordinator.coursesSummary
         ) { [weak coordinator] in
             coordinator?.makeCoursesController()
@@ -384,7 +384,7 @@ private final class TimetableEditorController: ReloadableStackScrollController {
 
         if coordinator.canManageCourses {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionHeaderView().with(header: "管理")
+                ConfigurableSectionHeaderView().with(header: L10n.tr("manage"))
             ) { $0.bottom /= 2 }
             stackView.addArrangedSubview(SeparatorView())
 
@@ -392,8 +392,8 @@ private final class TimetableEditorController: ReloadableStackScrollController {
                 coordinator?.promptDelete()
             }
             deleteAction.configure(icon: UIImage(systemName: "trash"))
-            deleteAction.configure(title: "删除课表")
-            deleteAction.configure(description: "永久删除这个课表及其课程数据。")
+            deleteAction.configure(title: L10n.tr("Delete class schedule"))
+            deleteAction.configure(description: L10n.tr("Permanently delete this schedule and its course data."))
             deleteAction.titleLabel.textColor = .systemRed
             deleteAction.iconView.tintColor = .systemRed
             deleteAction.descriptionLabel.textColor = .systemRed
@@ -485,8 +485,8 @@ private final class AlertOptionPickerViewController: AlertViewController {
         message: String = "",
         options: [String],
         selectedIndex: Int,
-        cancelButtonText: String = "取消",
-        doneButtonText: String = "确定",
+        cancelButtonText: String = L10n.tr("Cancel"),
+        doneButtonText: String = L10n.tr("Sure"),
         onConfirm: @escaping (Int) -> Void
     ) {
         var controller: AlertOptionPickerContentController!
@@ -539,7 +539,7 @@ private final class PeriodTemplatePickerController: ReloadableStackScrollControl
         self.applyTemplate = applyTemplate
         self.onChange = onChange
         super.init(nibName: nil, bundle: nil)
-        title = "节次模板"
+        title = L10n.tr("Section template")
     }
 
     @available(*, unavailable)
@@ -555,7 +555,7 @@ private final class PeriodTemplatePickerController: ReloadableStackScrollControl
     override func buildContent() {
         if isLoading && !hasLoadedOnce {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "正在读取节次模板…")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("Reading section template..."))
             )
             stackView.addArrangedSubviewWithMargin(UIView())
             return
@@ -570,13 +570,13 @@ private final class PeriodTemplatePickerController: ReloadableStackScrollControl
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "模板")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("template"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
         if templates.isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "还没有节次模板，请先去设置页创建模板。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("There is no section template yet, please go to the settings page to create a template first."))
             )
             stackView.addArrangedSubview(SeparatorView())
         } else {
@@ -588,9 +588,9 @@ private final class PeriodTemplatePickerController: ReloadableStackScrollControl
                 let iconName = isSelected ? "checkmark.circle.fill" : (template.isDefault ? "star.circle" : "clock.badge")
                 let periods = templatePeriods[template.id] ?? []
                 let tags = [
-                    isSelected ? "当前使用" : nil,
-                    template.isDefault ? "默认" : nil,
-                    "共 \(periods.count) 节"
+                    isSelected ? L10n.tr("currently in use") : nil,
+                    template.isDefault ? L10n.tr("default") : nil,
+                    L10n.tr("%d periods", periods.count)
                 ].compactMap { $0 }
                 action.configure(icon: UIImage(systemName: iconName))
                 action.configure(title: template.name)
@@ -649,12 +649,12 @@ private final class PeriodTemplatePickerController: ReloadableStackScrollControl
 
     private var statusFooterText: String {
         if isRefreshing {
-            return "正在刷新模板列表…"
+            return L10n.tr("Refreshing template list...")
         }
         if let refreshError {
-            return "刷新失败：\(refreshError.localizedDescription)"
+            return L10n.tr("Refresh failed: %@", refreshError.localizedDescription)
         }
-        return "选择模板后，会用模板节次覆盖当前课表的节次设置。"
+        return L10n.tr("After selecting a template, the section settings of the current class schedule will be overwritten with the template sections.")
     }
 
     private func selectTemplate(_ template: PeriodTemplate) {
@@ -681,7 +681,7 @@ private final class CourseManagementController: ReloadableStackScrollController 
         self.repository = repository
         self.timetableId = timetableId
         super.init(nibName: nil, bundle: nil)
-        title = "课程设置"
+        title = L10n.tr("Curriculum")
     }
 
     @available(*, unavailable)
@@ -707,7 +707,7 @@ private final class CourseManagementController: ReloadableStackScrollController 
     override func buildContent() {
         if isLoading && !hasLoadedOnce {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "正在加载课程…")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("Loading courses…"))
             )
             stackView.addArrangedSubviewWithMargin(UIView())
             return
@@ -722,7 +722,7 @@ private final class CourseManagementController: ReloadableStackScrollController 
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "课程")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("course"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
@@ -739,7 +739,7 @@ private final class CourseManagementController: ReloadableStackScrollController 
 
         if courses.isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "还没有课程，点击右上方“添加课程”开始创建。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("There is no course yet, click \"Add Course\" on the upper right to start creating it."))
             ) { $0.top /= 2 }
         }
 
@@ -751,9 +751,9 @@ private final class CourseManagementController: ReloadableStackScrollController 
     }
 
     private func courseSummary(for course: CourseWithMeetings) -> String {
-        let teacher = normalizeOptionalText(course.teacher) ?? "未设置教师"
-        let location = normalizeOptionalText(course.location) ?? "未设置地点"
-        return "\(teacher) · \(location) · 共 \(course.meetings.count) 条时间"
+        let teacher = normalizeOptionalText(course.teacher) ?? L10n.tr("No teacher set")
+        let location = normalizeOptionalText(course.location) ?? L10n.tr("No location set")
+        return L10n.tr("%@ · %@ · Total %d times", teacher, location, course.meetings.count)
     }
 
     @objc private func addCourseTapped() {
@@ -803,12 +803,12 @@ private final class CourseManagementController: ReloadableStackScrollController 
 
     private var statusFooterText: String {
         if isRefreshing {
-            return "正在刷新课程列表…"
+            return L10n.tr("Refreshing course list...")
         }
         if let refreshError {
-            return "刷新失败：\(refreshError.localizedDescription)"
+            return L10n.tr("Refresh failed: %@", refreshError.localizedDescription)
         }
-        return "课程修改后会立即生效到课表展示。"
+        return L10n.tr("Modified courses will take effect immediately on the course schedule display.")
     }
 }
 
@@ -822,7 +822,7 @@ private final class PeriodsManagementController: ReloadableStackScrollController
         self.setPeriods = setPeriods
         self.onChange = onChange
         super.init(nibName: nil, bundle: nil)
-        title = "节次设置"
+        title = L10n.tr("Section settings")
     }
 
     @available(*, unavailable)
@@ -847,7 +847,7 @@ private final class PeriodsManagementController: ReloadableStackScrollController
 
     override func buildContent() {
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "节次")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("section"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
@@ -862,7 +862,7 @@ private final class PeriodsManagementController: ReloadableStackScrollController
                 )
             })
             page.configure(icon: UIImage(systemName: "clock"))
-            page.configure(title: "第 \(period.periodIndex) 节")
+            page.configure(title: L10n.tr("Period %d", period.periodIndex))
             page.configure(description: "\(period.startTime) - \(period.endTime)")
             stackView.addArrangedSubviewWithMargin(page)
             stackView.addArrangedSubview(SeparatorView())
@@ -870,7 +870,7 @@ private final class PeriodsManagementController: ReloadableStackScrollController
 
         if getPeriods().isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "点击右上角 + 添加节次。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("Click + Add Section in the upper right corner."))
             )
             stackView.addArrangedSubview(SeparatorView())
         }
@@ -881,13 +881,13 @@ private final class PeriodsManagementController: ReloadableStackScrollController
     private func makeAddMenu() -> UIMenu {
         UIMenu(children: [
             UIAction(
-                title: "添加单节",
+                title: L10n.tr("Add single section"),
                 image: UIImage(systemName: "plus.circle")
             ) { [weak self] _ in
                 self?.addSinglePeriod()
             },
             UIAction(
-                title: "批量添加",
+                title: L10n.tr("Add in batches"),
                 image: UIImage(systemName: "square.stack.3d.up.badge.plus")
             ) { [weak self] _ in
                 self?.presentBatchAddPrompt()
@@ -916,12 +916,12 @@ private final class PeriodsManagementController: ReloadableStackScrollController
 
     private func presentBatchAddPrompt() {
         let input = AlertInputViewController(
-            title: "批量添加节次",
-            message: "请输入要连续添加的节次数量。",
+            title: L10n.tr("Add sections in batches"),
+            message: L10n.tr("Please enter the number of sections to add consecutively."),
             placeholder: "",
             text: "2",
-            cancelButtonText: "取消",
-            doneButtonText: "确定"
+            cancelButtonText: L10n.tr("Cancel"),
+            doneButtonText: L10n.tr("Sure")
         ) { [weak self] output in
             self?.handleBatchAdd(output: output)
         }
@@ -931,7 +931,7 @@ private final class PeriodsManagementController: ReloadableStackScrollController
     private func handleBatchAdd(output: String) {
         let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let count = Int(trimmed), count > 0 else {
-            presentMessage(title: "数量无效", message: "请输入大于 0 的整数。")
+            presentMessage(title: L10n.tr("Invalid quantity"), message: L10n.tr("Please enter an integer greater than 0."))
             return
         }
 
@@ -951,7 +951,7 @@ private final class PeriodsManagementController: ReloadableStackScrollController
 
     private func presentMessage(title: String, message: String) {
         let alert = AlertViewController(title: title, message: message) { context in
-            context.addAction(title: "确定", attribute: .accent) {
+            context.addAction(title: L10n.tr("Sure"), attribute: .accent) {
                 context.dispose()
             }
         }
@@ -971,7 +971,7 @@ private final class PeriodDetailController: ReloadableStackScrollController {
         self.setPeriods = setPeriods
         self.onChange = onChange
         super.init(nibName: nil, bundle: nil)
-        title = "第 \(periodIndex) 节"
+        title = L10n.tr("Period %d", periodIndex)
     }
 
     @available(*, unavailable)
@@ -992,12 +992,12 @@ private final class PeriodDetailController: ReloadableStackScrollController {
 
         appendEditableField(
             icon: "clock.badge",
-            title: "开始时间",
+            title: L10n.tr("start time"),
             description: nil,
             value: period.startTime,
             placeholder: "08:00"
         ) { [weak self] view in
-            self?.presentTimePicker(from: view, title: "编辑开始时间", message: "请选择开始时间。", currentValue: period.startTime) { newValue in
+            self?.presentTimePicker(from: view, title: L10n.tr("Edit start time"), message: L10n.tr("Please select a start time."), currentValue: period.startTime) { newValue in
                 self?.updateCurrentPeriod { $0.startTime = newValue }
                 view.configure(value: newValue)
             }
@@ -1005,19 +1005,19 @@ private final class PeriodDetailController: ReloadableStackScrollController {
 
         appendEditableField(
             icon: "clock.badge",
-            title: "结束时间",
+            title: L10n.tr("end time"),
             description: nil,
             value: period.endTime,
             placeholder: "08:45"
         ) { [weak self] view in
-            self?.presentTimePicker(from: view, title: "编辑结束时间", message: "请选择结束时间。", currentValue: period.endTime) { newValue in
+            self?.presentTimePicker(from: view, title: L10n.tr("Edit end time"), message: L10n.tr("Please select an end time."), currentValue: period.endTime) { newValue in
                 self?.updateCurrentPeriod { $0.endTime = newValue }
                 view.configure(value: newValue)
             }
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "管理")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("manage"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
@@ -1025,8 +1025,8 @@ private final class PeriodDetailController: ReloadableStackScrollController {
             self?.deletePeriod()
         }
         deleteAction.configure(icon: UIImage(systemName: "trash"))
-        deleteAction.configure(title: "删除本节")
-        deleteAction.configure(description: "删除这个节次，并自动重排后续节次序号。")
+        deleteAction.configure(title: L10n.tr("Delete this section"))
+        deleteAction.configure(description: L10n.tr("Delete this section and automatically rearrange the serial numbers of subsequent sections."))
         deleteAction.titleLabel.textColor = .systemRed
         deleteAction.iconView.tintColor = .systemRed
         deleteAction.descriptionLabel.textColor = .systemRed
@@ -1157,7 +1157,7 @@ private final class TimetableEditorLoadingViewController: UIViewController {
 
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "正在加载…"
+        label.text = L10n.tr("Loading…")
         label.font = .preferredFont(forTextStyle: .body)
         label.textColor = .secondaryLabel
 

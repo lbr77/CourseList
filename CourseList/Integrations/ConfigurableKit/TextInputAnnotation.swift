@@ -68,8 +68,8 @@ final class TextInputConfigurableView: ConfigurableValueView {
             message: descriptionLabel.isHidden ? "" : (descriptionLabel.text ?? ""),
             placeholder: placeholderText,
             text: value.decodingValue(defaultValue: ""),
-            cancelButtonText: "取消",
-            doneButtonText: "确定"
+            cancelButtonText: L10n.tr("Cancel"),
+            doneButtonText: L10n.tr("Sure")
         ) { [weak self] output in
             guard let self else { return }
             value = .init(output)
@@ -957,8 +957,8 @@ open class AlertDatePickerViewController: AlertViewController {
         message: String = "",
         mode: UIDatePicker.Mode,
         selectedDate: Date,
-        cancelButtonText: String = "取消",
-        doneButtonText: String = "确定",
+        cancelButtonText: String = L10n.tr("Cancel"),
+        doneButtonText: String = L10n.tr("Sure"),
         onConfirm: @escaping (Date) -> Void
     ) {
         var controller: AlertDatePickerContentController!

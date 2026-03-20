@@ -25,7 +25,13 @@ enum ConflictDetector {
                             weekday: savedMeeting.weekday,
                             startPeriod: savedMeeting.startPeriod,
                             endPeriod: savedMeeting.endPeriod,
-                            message: "\(course.name) 与星期\(meeting.weekday) 第 \(meeting.startPeriod)-\(meeting.endPeriod) 节存在重叠。"
+                            message: L10n.tr(
+                                "%@ 与星期%d 第 %d-%d 节存在重叠。",
+                                course.name,
+                                meeting.weekday,
+                                meeting.startPeriod,
+                                meeting.endPeriod
+                            )
                         )
                     )
                 }

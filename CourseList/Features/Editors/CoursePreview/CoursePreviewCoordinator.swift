@@ -52,7 +52,7 @@ private final class CoursePreviewController: UIViewController {
         self.onFinished = onFinished
         self.onEditCourse = onEditCourse
         super.init(nibName: nil, bundle: nil)
-        title = "课程预览"
+        title = L10n.tr("Course preview")
     }
 
     @available(*, unavailable)
@@ -100,7 +100,7 @@ private final class CoursePreviewController: UIViewController {
 
         do {
             guard let loadedCourse = try await repository.getCourse(courseId: courseId) else {
-                throw AppError.notFound("课程不存在，可能已经被删除。")
+                throw AppError.notFound(L10n.tr("The course does not exist and may have been deleted."))
             }
 
             async let periodsTask = repository.listPeriods(timetableId: loadedCourse.timetableId)
@@ -135,7 +135,7 @@ private final class CoursePreviewController: UIViewController {
     }
 
     private func render() {
-        title = course?.name ?? "课程预览"
+        title = course?.name ?? L10n.tr("Course preview")
         navigationItem.rightBarButtonItem?.isEnabled = course != nil && !isLoading && !isRefreshing && loadError == nil
 
         let controller = ConfigurableViewController(manifest: makeManifest())
@@ -166,15 +166,15 @@ private final class CoursePreviewController: UIViewController {
     private func makeManifest() -> ConfigurableManifest {
         if isLoading && !hasLoadedOnce {
             return ConfigurableManifest(
-                title: "课程预览",
-                list: [loadingObject(text: "正在读取课程…")],
-                footer: "正在读取课程数据…"
+                title: L10n.tr("Course preview"),
+                list: [loadingObject(text: L10n.tr("Reading course…"))],
+                footer: L10n.tr("Reading course data...")
             )
         }
 
         if let loadError, course == nil {
             return ConfigurableManifest(
-                title: "课程预览",
+                title: L10n.tr("Course preview"),
                 list: [errorObject(error: loadError)],
                 footer: statusFooterText
             )
@@ -182,8 +182,8 @@ private final class CoursePreviewController: UIViewController {
 
         guard let course else {
             return ConfigurableManifest(
-                title: "课程预览",
-                list: [infoObject(text: "课程不存在，可能已被删除。")],
+                title: L10n.tr("Course preview"),
+                list: [infoObject(text: L10n.tr("The course does not exist and may have been deleted."))],
                 footer: statusFooterText
             )
         }
@@ -192,7 +192,7 @@ private final class CoursePreviewController: UIViewController {
         objects.append(
             ConfigurableObject(
                 icon: "location.viewfinder",
-                title: "当前时段",
+                title: L10n.tr("Current period"),
                 explain: currentSelectionSummary(course: course),
                 ephemeralAnnotation: .action { _ in }
             )
@@ -200,7 +200,7 @@ private final class CoursePreviewController: UIViewController {
         objects.append(
             ConfigurableObject(
                 icon: "calendar",
-                title: timetable?.name ?? "未找到所属课表",
+                title: timetable?.name ?? L10n.tr("The class schedule was not found"),
                 explain: buildTimetableLine(),
                 ephemeralAnnotation: .action { _ in }
             )
@@ -208,16 +208,16 @@ private final class CoursePreviewController: UIViewController {
         objects.append(
             ConfigurableObject(
                 icon: "person",
-                title: "教师",
-                explain: normalizeOptionalText(course.teacher) ?? "未设置",
+                title: L10n.tr("teacher"),
+                explain: normalizeOptionalText(course.teacher) ?? L10n.tr("not set"),
                 ephemeralAnnotation: .action { _ in }
             )
         )
         objects.append(
             ConfigurableObject(
                 icon: "note.text",
-                title: "备注",
-                explain: normalizeOptionalText(course.note) ?? "未设置",
+                title: L10n.tr("Remark"),
+                explain: normalizeOptionalText(course.note) ?? L10n.tr("not set"),
                 ephemeralAnnotation: .action { _ in }
             )
         )
@@ -225,8 +225,8 @@ private final class CoursePreviewController: UIViewController {
         objects.append(
             ConfigurableObject(
                 icon: "square.and.pencil",
-                title: "编辑课程",
-                explain: "修改课程信息与上课时间",
+                title: L10n.tr("Edit course"),
+                explain: L10n.tr("Modify course information and class time"),
                 ephemeralAnnotation: .action { _ in
                     self.editTapped()
                 }
@@ -242,7 +242,7 @@ private final class CoursePreviewController: UIViewController {
 
     private func buildTimetableLine() -> String {
         guard let timetable else {
-            return "课表信息不可用"
+            return L10n.tr("Class schedule information is not available")
         }
         return "\(timetable.startDate) 开学 · \(timetable.weeksCount) 周"
     }
@@ -258,7 +258,7 @@ private final class CoursePreviewController: UIViewController {
 
         parts.append("第\(selection.week)周")
 
-        let location = normalizeOptionalText(selection.location) ?? normalizeOptionalText(course.location) ?? "未设置教室"
+        let location = normalizeOptionalText(selection.location) ?? normalizeOptionalText(course.location) ?? L10n.tr("No classroom set up")
         parts.append("教室：\(location)")
         return parts.joined(separator: " · ")
     }
@@ -323,7 +323,7 @@ private final class CoursePreviewController: UIViewController {
     private func errorObject(error: Error) -> ConfigurableObject {
         ConfigurableObject(
             icon: "exclamationmark.triangle",
-            title: "读取失败",
+            title: L10n.tr("Read failed"),
             explain: error.localizedDescription,
             ephemeralAnnotation: .action { _ in
                 Task { await self.reloadData(showLoading: true) }
@@ -333,30 +333,30 @@ private final class CoursePreviewController: UIViewController {
 
     private var statusFooterText: String {
         if isRefreshing {
-            return "正在刷新课程数据…"
+            return L10n.tr("Refreshing course data...")
         }
         if let refreshError {
             return "刷新失败：\(refreshError.localizedDescription)"
         }
         if let loadError, course == nil {
-            return "点按上方条目可重试。"
+            return L10n.tr("Tap the entry above to try again.")
         }
         if let course {
             return "共 \(course.meetings.count) 条上课时间"
         }
-        return "请返回课表页刷新后重试。"
+        return L10n.tr("Please return to the class schedule page to refresh and try again.")
     }
 
     private func weekdayLabel(_ weekday: Int) -> String {
         switch weekday {
-        case 1: return "周一"
-        case 2: return "周二"
-        case 3: return "周三"
-        case 4: return "周四"
-        case 5: return "周五"
-        case 6: return "周六"
-        case 7: return "周日"
-        default: return "周一"
+        case 1: return L10n.tr("on Monday")
+        case 2: return L10n.tr("Tuesday")
+        case 3: return L10n.tr("Wednesday")
+        case 4: return L10n.tr("Thursday")
+        case 5: return L10n.tr("Friday")
+        case 6: return L10n.tr("Saturday")
+        case 7: return L10n.tr("Sunday")
+        default: return L10n.tr("on Monday")
         }
     }
 }

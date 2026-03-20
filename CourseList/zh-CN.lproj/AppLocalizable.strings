@@ -1,0 +1,784 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ About to start</key>
+	<string>%@ 即将开始</string>
+	<key>%@ · %@ School starts · %d weeks</key>
+	<string>%@ · %@ 开学 · %d 周</string>
+	<key>%@ · %@ · Total %d times</key>
+	<string>%@ · %@ · 共 %d 条时间</string>
+	<key>%@ · Total %d sections</key>
+	<string>%@ · 共 %d 节</string>
+	<key>%d items</key>
+	<string>共 %d 条</string>
+	<key>%d periods</key>
+	<string>共 %d 节</string>
+	<key>%d-%d weeks</key>
+	<string>%d-%d 周</string>
+	<key>1 week</key>
+	<string>1 周</string>
+	<key>16 weeks</key>
+	<string>16 周</string>
+	<key>Academic Affairs Import</key>
+	<string>教务导入</string>
+	<key>Add in batches</key>
+	<string>批量添加</string>
+	<key>Add section</key>
+	<string>添加节次</string>
+	<key>Add sections in batches</key>
+	<string>批量添加节次</string>
+	<key>Add single section</key>
+	<string>添加单节</string>
+	<key>Adjacent sections will be generated according to the set duration and inter-class time.</key>
+	<string>会按设定的时长和课间时间生成相邻节次。</string>
+	<key>Advanced Mathematics</key>
+	<string>高等数学</string>
+	<key>After confirmation, it will be imported into the local class schedule.</key>
+	<string>确认后将导入到本地课表。</string>
+	<key>After importing, a new class schedule will be created.</key>
+	<string>导入后会创建一个新的课表。</string>
+	<key>After selecting a template, the section settings of the current class schedule will be overwritten with the template sections.</key>
+	<string>选择模板后，会用模板节次覆盖当前课表的节次设置。</string>
+	<key>Afternoon classes</key>
+	<string>下午几节课</string>
+	<key>Appearance settings</key>
+	<string>外观设置</string>
+	<key>Are you sure you want to delete this class schedule?</key>
+	<string>确定删除这个课表吗？此操作无法撤销。</string>
+	<key>Are you sure you want to delete this section template?</key>
+	<string>确定删除这个节次模板吗？此操作无法撤销。</string>
+	<key>Article %d</key>
+	<string>第 %d 条</string>
+	<key>Authorized to access the system calendar.</key>
+	<string>已授权，可访问系统日历。</string>
+	<key>Authorized to read and write the system calendar.</key>
+	<string>已授权，可读写系统日历。</string>
+	<key>Authorized to read the system calendar.</key>
+	<string>已授权，可读取系统日历。</string>
+	<key>Build number</key>
+	<string>构建号</string>
+	<key>Calendar access</key>
+	<string>日历访问权限</string>
+	<key>Calendar events</key>
+	<string>日历事件</string>
+	<key>Calendar read permission</key>
+	<string>日历读取权限</string>
+	<key>Calendar reading needs to be allowed before system calendar events can be imported.</key>
+	<string>需要允许读取日历，才能导入系统日历事件。</string>
+	<key>Cancel</key>
+	<string>取消</string>
+	<key>Choose a break between each session.</key>
+	<string>选择每节之间的课间时间。</string>
+	<key>Choose a reminder time before the course starts.</key>
+	<string>选择课程开始前的提醒时间。</string>
+	<key>Choose school</key>
+	<string>选择学校</string>
+	<key>Choose the length of each lesson.</key>
+	<string>选择每节课的时长。</string>
+	<key>Class schedule information is not available</key>
+	<string>课表信息不可用</string>
+	<key>Class schedule name</key>
+	<string>课表名称</string>
+	<key>Class schedule: %@</key>
+	<string>课表：%@</string>
+	<key>Class time</key>
+	<string>上课时间</string>
+	<key>Click + Add Section in the upper right corner.</key>
+	<string>点击右上角 + 添加节次。</string>
+	<key>Click Request calendar access.</key>
+	<string>点击申请日历访问权限。</string>
+	<key>Click to apply for permission to read the calendar.</key>
+	<string>点击申请读取日历权限。</string>
+	<key>Click to edit section</key>
+	<string>点击编辑节次</string>
+	<key>Confirm import</key>
+	<string>确认导入</string>
+	<key>Continue to save</key>
+	<string>继续保存</string>
+	<key>Corresponding class schedule not found: %@</key>
+	<string>未找到对应课表：%@</string>
+	<key>Course %d: %@</key>
+	<string>第 %d 门课程：%@</string>
+	<key>Course name</key>
+	<string>课程名称</string>
+	<key>Course name cannot be empty.</key>
+	<string>课程名称不能为空。</string>
+	<key>Course preview</key>
+	<string>课程预览</string>
+	<key>Course reminder</key>
+	<string>课程提醒</string>
+	<key>Courses can be managed after saving the schedule</key>
+	<string>保存课表后可管理课程</string>
+	<key>Create a new class schedule</key>
+	<string>新建课表</string>
+	<key>Create new course</key>
+	<string>新建课程</string>
+	<key>Create new template</key>
+	<string>新建模板</string>
+	<key>Current class schedule</key>
+	<string>当前课表</string>
+	<key>Current default template</key>
+	<string>当前默认模板</string>
+	<key>Current period</key>
+	<string>当前时段</string>
+	<key>Curriculum</key>
+	<string>课程设置</string>
+	<key>Custom sections</key>
+	<string>自定义节次</string>
+	<key>Database initialization failed</key>
+	<string>数据库初始化失败</string>
+	<key>Database initialization failed: %@</key>
+	<string>数据库初始化失败：%@</string>
+	<key>Date anomaly</key>
+	<string>日期异常</string>
+	<key>Day of the week must be between 1 and 7.</key>
+	<string>星期必须在 1 到 7 之间。</string>
+	<key>Default template · Click to edit</key>
+	<string>默认模板 · 点击编辑</string>
+	<key>Delete class schedule</key>
+	<string>删除课表</string>
+	<key>Delete course</key>
+	<string>删除课程</string>
+	<key>Delete template</key>
+	<string>删除模板</string>
+	<key>Delete this article</key>
+	<string>删除本条</string>
+	<key>Delete this class time.</key>
+	<string>删除这条上课时间。</string>
+	<key>Delete this section</key>
+	<string>删除本节</string>
+	<key>Delete this section and automatically rearrange the serial numbers of subsequent sections.</key>
+	<string>删除这个节次，并自动重排后续节次序号。</string>
+	<key>Delete this section template.</key>
+	<string>删除这个节次模板。若它是默认模板，会自动切换到其它模板。</string>
+	<key>Duration of each section</key>
+	<string>每节时长</string>
+	<key>Edit Teacher</key>
+	<string>编辑教师</string>
+	<key>Edit class name</key>
+	<string>编辑课表名称</string>
+	<key>Edit class schedule</key>
+	<string>编辑课表</string>
+	<key>Edit course</key>
+	<string>编辑课程</string>
+	<key>Edit course name</key>
+	<string>编辑课程名称</string>
+	<key>Edit end section</key>
+	<string>编辑结束节</string>
+	<key>Edit end time</key>
+	<string>编辑结束时间</string>
+	<key>Edit end week</key>
+	<string>编辑结束周</string>
+	<key>Edit location</key>
+	<string>编辑地点</string>
+	<key>Edit odd and fortnightly</key>
+	<string>编辑单双周</string>
+	<key>Edit start date</key>
+	<string>编辑开学日期</string>
+	<key>Edit start section</key>
+	<string>编辑开始节</string>
+	<key>Edit start time</key>
+	<string>编辑开始时间</string>
+	<key>Edit template</key>
+	<string>编辑模板</string>
+	<key>Edit template name</key>
+	<string>编辑模板名称</string>
+	<key>Edit this location</key>
+	<string>编辑本次地点</string>
+	<key>Editing start week</key>
+	<string>编辑开始周</string>
+	<key>Editor's Notes</key>
+	<string>编辑备注</string>
+	<key>Editor's Week</key>
+	<string>编辑星期</string>
+	<key>End date cannot be earlier than start date.</key>
+	<string>结束日期不能早于开始日期。</string>
+	<key>English (US)</key>
+	<string>英语（美国）</string>
+	<key>Enter address</key>
+	<string>输入地址</string>
+	<key>Export completed</key>
+	<string>导出完成</string>
+	<key>Export failed</key>
+	<string>导出失败</string>
+	<key>Export rules: Events created by CourseList in the same range of the target calendar of the current class schedule will be deleted first, and then the latest courses will be written.</key>
+	<string>导出规则：会先删除当前课表在目标日历同范围内由 CourseList 创建的事件，再写入最新课程。</string>
+	<key>Export settings</key>
+	<string>导出设置</string>
+	<key>Export to calendar</key>
+	<string>导出到日历</string>
+	<key>Exporting…</key>
+	<string>正在导出…</string>
+	<key>Failed to read the class schedule. Click the entry above to try again.</key>
+	<string>读取课表失败，点按上方条目可重试。</string>
+	<key>Fill out at least one session in the morning and afternoon.</key>
+	<string>上午和下午至少要填写一段课程。</string>
+	<key>Finish</key>
+	<string>完成</string>
+	<key>First quarter time</key>
+	<string>第一节时间</string>
+	<key>Fortnightly</key>
+	<string>双周</string>
+	<key>Friday</key>
+	<string>周五</string>
+	<key>Go to</key>
+	<string>前往</string>
+	<key>How long before the course starts</key>
+	<string>课程开始前多久提醒</string>
+	<key>How many classes are there in the morning?</key>
+	<string>上午几节课</string>
+	<key>Identify page</key>
+	<string>识别页面</string>
+	<key>If there is no class schedule, click + in the upper right corner to add one~</key>
+	<string>没有课表，点右上角 + 添加一个吧~</string>
+	<key>Import calendar</key>
+	<string>导入日历</string>
+	<key>Import completed</key>
+	<string>导入完成</string>
+	<key>Import failed</key>
+	<string>导入失败</string>
+	<key>Import failed.</key>
+	<string>导入失败。</string>
+	<key>Import failed: No course data available.</key>
+	<string>导入失败：没有可用课程数据。</string>
+	<key>Import failed: Unable to generate section.</key>
+	<string>导入失败：无法生成节次。</string>
+	<key>Import preview</key>
+	<string>导入预览</string>
+	<key>Import rules: All-day events and cross-day events will be ignored; remaining events will be automatically converted by week and week.</key>
+	<string>导入规则：全天事件和跨天事件会被忽略；其余事件会按周次与星期自动转换。</string>
+	<key>Import settings</key>
+	<string>导入设置</string>
+	<key>Import statistics</key>
+	<string>导入统计</string>
+	<key>Imported class schedule name</key>
+	<string>导入后的课表名称</string>
+	<key>Imported sections must be numbered consecutively starting from 1.</key>
+	<string>导入的节次必须从 1 开始连续编号。</string>
+	<key>Importing</key>
+	<string>导入中</string>
+	<key>Importing class schedule...</key>
+	<string>正在导入课表…</string>
+	<key>Importing…</key>
+	<string>正在导入…</string>
+	<key>Initialization failed</key>
+	<string>初始化失败</string>
+	<key>Initializing database...</key>
+	<string>正在初始化数据库…</string>
+	<key>Invalid date range</key>
+	<string>日期范围无效</string>
+	<key>Invalid export date range.</key>
+	<string>导出日期范围无效。</string>
+	<key>Invalid import date range.</key>
+	<string>导入日期范围无效。</string>
+	<key>Invalid parameter</key>
+	<string>参数无效</string>
+	<key>Invalid quantity</key>
+	<string>数量无效</string>
+	<key>Invalid week range.</key>
+	<string>周次范围无效。</string>
+	<key>Jilin University (vpn)</key>
+	<string>吉林大学（vpn)</string>
+	<key>Junior year</key>
+	<string>大三上</string>
+	<key>Language</key>
+	<string>语言</string>
+	<key>Li Hua</key>
+	<string>李华</string>
+	<key>Loading courses…</key>
+	<string>正在加载课程…</string>
+	<key>Loading…</key>
+	<string>正在加载…</string>
+	<key>Manage class schedule</key>
+	<string>管理课表</string>
+	<key>Manage courses in this schedule</key>
+	<string>管理本课表中的课程</string>
+	<key>Manage default sections and templates</key>
+	<string>管理默认节次与模板</string>
+	<key>Modified courses will take effect immediately on the course schedule display.</key>
+	<string>课程修改后会立即生效到课表展示。</string>
+	<key>Modify course information and class time</key>
+	<string>修改课程信息与上课时间</string>
+	<key>No calendar selected</key>
+	<string>未选择日历</string>
+	<key>No class schedule selected</key>
+	<string>未选择课表</string>
+	<key>No classroom set up</key>
+	<string>未设置教室</string>
+	<key>No location set</key>
+	<string>未设置地点</string>
+	<key>No matching school found</key>
+	<string>没有找到匹配学校</string>
+	<key>No teacher set</key>
+	<string>未设置教师</string>
+	<key>Not started</key>
+	<string>未开始</string>
+	<key>Notifications are available; calendar permissions are available in Tools -&gt; Export to Calendar.</key>
+	<string>通知已可用；日历权限用于“工具 -&gt; 导出到日历”。</string>
+	<key>Notifications have been denied and can be turned back on in system settings; calendar permissions can be managed separately.</key>
+	<string>通知已被拒绝，可在系统设置中重新开启；日历权限可单独管理。</string>
+	<key>Notifications, calendar and other system permissions</key>
+	<string>通知、日历等系统权限</string>
+	<key>Odd and even weeks</key>
+	<string>单双周</string>
+	<key>Only courses on and after this date will be exported.</key>
+	<string>只导出该日期及之后的课程。</string>
+	<key>Only courses on and before this date will be exported.</key>
+	<string>只导出该日期及之前的课程。</string>
+	<key>Only events on and after this date will be imported.</key>
+	<string>只导入该日期及之后的事件。</string>
+	<key>Only events on and before this date will be imported.</key>
+	<string>只导入该日期及之前的事件。</string>
+	<key>Operation failed</key>
+	<string>操作失败</string>
+	<key>Page scraping returns empty.</key>
+	<string>页面抓取返回为空。</string>
+	<key>Period %d</key>
+	<string>第 %d 节</string>
+	<key>Permanently delete this course and all class times.</key>
+	<string>永久删除这门课程及其全部上课时间。</string>
+	<key>Permanently delete this schedule and its course data.</key>
+	<string>永久删除这个课表及其课程数据。</string>
+	<key>Permission management</key>
+	<string>权限管理</string>
+	<key>Permission status is unknown.</key>
+	<string>权限状态未知。</string>
+	<key>Place</key>
+	<string>地点</string>
+	<key>Please add at least one class time.</key>
+	<string>请至少添加一条上课时间。</string>
+	<key>Please add at least one section.</key>
+	<string>请至少添加一个节次。</string>
+	<key>Please enter a template name.</key>
+	<string>请输入模板名称。</string>
+	<key>Please enter an integer greater than 0.</key>
+	<string>请输入大于 0 的整数。</string>
+	<key>Please enter the number of sections to add consecutively.</key>
+	<string>请输入要连续添加的节次数量。</string>
+	<key>Please log in to the school system first and enter the class schedule page, then click \"Identify Page\".</key>
+	<string>请先登录学校系统并进入课表页面，然后点击“识别页面”。</string>
+	<key>Please log in to the school system first and enter the class schedule page, then click \"Identify\" in the upper right corner.</key>
+	<string>请先登录学校系统并进入课表页面，然后点击右上角“识别”。</string>
+	<key>Please return to the class schedule page to refresh and try again.</key>
+	<string>请返回课表页刷新后重试。</string>
+	<key>Please save the class schedule first and then manage the course.</key>
+	<string>请先保存课表，然后再管理课程。</string>
+	<key>Please select</key>
+	<string>请选择</string>
+	<key>Please select a destination calendar first.</key>
+	<string>请先选择目标日历。</string>
+	<key>Please select a start date.</key>
+	<string>请选择开学日期。</string>
+	<key>Please select a start time.</key>
+	<string>请选择开始时间。</string>
+	<key>Please select a system calendar to write to.</key>
+	<string>请选择要写入的系统日历。</string>
+	<key>Please select an end time.</key>
+	<string>请选择结束时间。</string>
+	<key>Please select at least one calendar.</key>
+	<string>请至少选择一个日历。</string>
+	<key>Please select how to add.</key>
+	<string>请选择添加方式。</string>
+	<key>Please select your class schedule first.</key>
+	<string>请先选择课表。</string>
+	<key>Please set a start time for the first period in the morning.</key>
+	<string>请设置上午第一节开始时间。</string>
+	<key>Please set a start time for the first session in the afternoon.</key>
+	<string>请设置下午第一节开始时间。</string>
+	<key>Read failed</key>
+	<string>读取失败</string>
+	<key>Reading class schedule data...</key>
+	<string>正在读取课表数据…</string>
+	<key>Reading class schedule...</key>
+	<string>正在读取课表…</string>
+	<key>Reading course data...</key>
+	<string>正在读取课程数据…</string>
+	<key>Reading course…</key>
+	<string>正在读取课程…</string>
+	<key>Reading section template...</key>
+	<string>正在读取节次模板…</string>
+	<key>Reading template…</key>
+	<string>正在读取模板…</string>
+	<key>Recognizing</key>
+	<string>识别中</string>
+	<key>Recognizing and crawling the current page...</key>
+	<string>正在识别并抓取当前页面…</string>
+	<key>Refresh calendar list</key>
+	<string>刷新日历列表</string>
+	<key>Refresh data</key>
+	<string>刷新数据</string>
+	<key>Refresh failed: %@</key>
+	<string>刷新失败：%@</string>
+	<key>Refreshing class schedule data...</key>
+	<string>正在刷新课表数据…</string>
+	<key>Refreshing course data...</key>
+	<string>正在刷新课程数据…</string>
+	<key>Refreshing course list...</key>
+	<string>正在刷新课程列表…</string>
+	<key>Refreshing section template...</key>
+	<string>正在刷新节次模板…</string>
+	<key>Refreshing template list...</key>
+	<string>正在刷新模板列表…</string>
+	<key>Rejected</key>
+	<string>已拒绝</string>
+	<key>Rejected, click to go to system settings to turn it on.</key>
+	<string>已拒绝，点击前往系统设置开启。</string>
+	<key>Remark</key>
+	<string>备注</string>
+	<key>Saturday</key>
+	<string>周六</string>
+	<key>School start date</key>
+	<string>开学日期</string>
+	<key>Search schools</key>
+	<string>搜索学校</string>
+	<key>Section %d</key>
+	<string>第%d节</string>
+	<key>Section %d · Course %d</key>
+	<string>节次 %d · 课程 %d</string>
+	<key>Section %d-%d</key>
+	<string>第 %d-%d 节</string>
+	<key>Section 1</key>
+	<string>第 1 节</string>
+	<key>Section 2</key>
+	<string>第 2 节</string>
+	<key>Section numbers must start from 1 and increase continuously.</key>
+	<string>节次序号必须从 1 开始连续递增。</string>
+	<key>Section settings</key>
+	<string>节次设置</string>
+	<key>Section template</key>
+	<string>节次模板</string>
+	<key>Section times must be in HH:mm format.</key>
+	<string>节次时间必须使用 HH:mm 格式。</string>
+	<key>Section: %d · Course: %d</key>
+	<string>节次：%d · 课程：%d</string>
+	<key>Select class schedule</key>
+	<string>选择课表</string>
+	<key>Select target calendar</key>
+	<string>选择目标日历</string>
+	<key>Select the class schedule to export to the calendar.</key>
+	<string>选择要导出到日历的课表。</string>
+	<key>Select the effective week type for this time.</key>
+	<string>选择这条时间的生效周类型。</string>
+	<key>Select the export date.</key>
+	<string>选择导出日期。</string>
+	<key>Select the import date.</key>
+	<string>选择导入日期。</string>
+	<key>Select the number of sections.</key>
+	<string>选择节数。</string>
+	<key>Select the target calendar from the system calendar.</key>
+	<string>选择系统日历中的目标日历。</string>
+	<key>Select the time from which the class schedule will be displayed.</key>
+	<string>选择课表从几点开始显示。</string>
+	<key>Select the week this time falls on.</key>
+	<string>选择这条时间所在的星期。</string>
+	<key>Select until what time the class schedule is displayed.</key>
+	<string>选择课表显示到几点。</string>
+	<key>Send system notification before class</key>
+	<string>上课前发送系统通知</string>
+	<key>Set as default template</key>
+	<string>设为默认模板</string>
+	<key>Set the week view to start on Sunday or Monday</key>
+	<string>设置周视图从周天或周一开始</string>
+	<key>Shaw Teaching Building</key>
+	<string>逸夫教学楼</string>
+	<key>Show end time</key>
+	<string>显示结束时间</string>
+	<key>Show start time</key>
+	<string>显示开始时间</string>
+	<key>Simplified Chinese</key>
+	<string>简体中文</string>
+	<key>Source Calendar</key>
+	<string>来源日历</string>
+	<key>Source schedule</key>
+	<string>来源课表</string>
+	<key>Start date must be in YYYY-MM-DD format.</key>
+	<string>开学日期必须使用 YYYY-MM-DD 格式。</string>
+	<key>Start date: %@ · Week number: %d</key>
+	<string>开学日期：%@ · 周数：%d</string>
+	<key>Start export</key>
+	<string>开始导出</string>
+	<key>Start importing</key>
+	<string>开始导入</string>
+	<key>Start time of the first session in the morning</key>
+	<string>上午第一节开始时间</string>
+	<key>Starting time of the first period in the afternoon</key>
+	<string>下午第一节开始时间</string>
+	<key>Starts on Sunday</key>
+	<string>周天开始</string>
+	<key>Sunday</key>
+	<string>周日</string>
+	<key>Sure</key>
+	<string>确定</string>
+	<key>Swipe up or down to select a section.</key>
+	<string>上下滑动选择节次。</string>
+	<key>Swipe up or down to select a week.</key>
+	<string>上下滑动选择周次。</string>
+	<key>Swipe up or down to select the total number of weeks.</key>
+	<string>上下滑动选择总周数。</string>
+	<key>Switch app display language</key>
+	<string>切换应用显示语言</string>
+	<key>System calendar</key>
+	<string>系统日历</string>
+	<key>System limit and cannot be modified.</key>
+	<string>系统限制，无法修改。</string>
+	<key>System permissions such as notifications and calendars can be managed here.</key>
+	<string>通知、日历等系统权限可在这里统一管理。</string>
+	<key>Tap the entry above to try again.</key>
+	<string>点按上方条目可重试。</string>
+	<key>Template does not exist.</key>
+	<string>模板不存在。</string>
+	<key>Template name</key>
+	<string>模板名称</string>
+	<key>Template name cannot be empty.</key>
+	<string>模板名称不能为空。</string>
+	<key>The app cannot continue to start. Please check the storage permissions or restart the app.</key>
+	<string>应用无法继续启动，请检查存储权限或重启应用。</string>
+	<key>The class schedule name cannot be empty.</key>
+	<string>课表名称不能为空。</string>
+	<key>The class schedule was not found</key>
+	<string>未找到所属课表</string>
+	<key>The class schedule will be stretched and displayed according to this range, which is suitable for improving readability when classes are concentrated during the day.</key>
+	<string>课表会按该范围拉伸显示，适合课程集中在白天时提高可读性。</string>
+	<key>The course does not exist and may have been deleted.</key>
+	<string>课程不存在，可能已经被删除。</string>
+	<key>The current class schedule does not have sections configured yet. Please add sections to the class schedule before saving the course.</key>
+	<string>当前课表还没有节次配置，保存课程前请先补充课表节次。</string>
+	<key>The current page does not support automatic import.</key>
+	<string>当前页面暂不支持自动导入。请先进入学校课表页面后重试。</string>
+	<key>The current page does not support import.</key>
+	<string>当前页面不支持导入。</string>
+	<key>The default template will be used for the initial sections of the new class schedule; existing class schedules will not be automatically changed.</key>
+	<string>默认模板会用于新建课表的初始节次；现有课表不会自动变更。</string>
+	<key>The display name of the class schedule.</key>
+	<string>课表的显示名称。</string>
+	<key>The display name of the course.</key>
+	<string>课程的显示名称。</string>
+	<key>The export will not modify the class schedule data, it will only be written to the system calendar.</key>
+	<string>导出不会修改课表数据，只会写入系统日历。</string>
+	<key>The hour is displayed at the bottom of the schedule</key>
+	<string>课表底部显示到该小时</string>
+	<key>The import is complete.</key>
+	<string>导入完成。</string>
+	<key>The import preview has not been generated yet.</key>
+	<string>尚未生成导入预览。</string>
+	<key>The notification is undecided; system authorization pop-up window will be triggered when course reminder is enabled.</key>
+	<string>通知未决定；启用课程提醒时会触发系统授权弹窗。</string>
+	<key>The number of course sections exceeds the timetable configuration.</key>
+	<string>课程节次超出了课表配置。</string>
+	<key>The schedule start date is invalid.</key>
+	<string>课表开学日期无效。</string>
+	<key>The section end time must be later than the start time.</key>
+	<string>节次结束时间必须晚于开始时间。</string>
+	<key>The section range is invalid.</key>
+	<string>节次范围无效。</string>
+	<key>The starting hour shown at the top of the schedule</key>
+	<string>课表顶部显示的起始小时</string>
+	<key>The system calendar can be refreshed manually when there are changes.</key>
+	<string>当系统日历有变更时可手动刷新。</string>
+	<key>The teacher wants to sign in by hand. Go quickly.</key>
+	<string>老师要手写签到，快去</string>
+	<key>The week number must be at least 1.</key>
+	<string>周数至少为 1。</string>
+	<key>Themes, colors and display</key>
+	<string>主题、颜色与显示方式</string>
+	<key>There are currently no system calendars available for writing.</key>
+	<string>当前没有可写入的系统日历。</string>
+	<key>There are no calendar events that can be imported within the selection range (all-day events and cross-day events will be ignored).</key>
+	<string>选择范围内没有可导入的日历事件（全天事件、跨天事件会被忽略）。</string>
+	<key>There are no courses in the import results.</key>
+	<string>导入结果中没有课程。</string>
+	<key>There are no exportable courses in the selection.</key>
+	<string>选择范围内没有可导出的课程。</string>
+	<key>There is currently no class schedule. Please create a new class schedule or import a class schedule first.</key>
+	<string>当前还没有课表，请先新建课表或导入课表。</string>
+	<key>There is currently no corresponding section time.</key>
+	<string>当前还没有可对应的节次时间。</string>
+	<key>There is currently no section, please add a section first.</key>
+	<string>当前还没有节次，请先添加节次。</string>
+	<key>There is currently no system calendar to read.</key>
+	<string>当前没有可读取的系统日历。</string>
+	<key>There is no class schedule yet, click + in the upper right corner to create a new one or import it.</key>
+	<string>还没有课表，点右上角 + 来新建或导入。</string>
+	<key>There is no class time yet, click \"Add\" on the upper right to start creating.</key>
+	<string>还没有上课时间，点击右上方“添加”开始创建。</string>
+	<key>There is no course yet, click \"Add Course\" on the upper right to start creating it.</key>
+	<string>还没有课程，点击右上方“添加课程”开始创建。</string>
+	<key>There is no section configuration in the current class schedule, so use the default value first.</key>
+	<string>当前课表还没有节次配置，先用默认值占位。</string>
+	<key>There is no section template yet, click + New in the upper right corner.</key>
+	<string>还没有节次模板，点击右上角 + 新建。</string>
+	<key>There is no section template yet, please go to the settings page to create a template first.</key>
+	<string>还没有节次模板，请先去设置页创建模板。</string>
+	<key>This set of sections is used by default when creating a new class schedule.</key>
+	<string>新建课表时默认使用这套节次。</string>
+	<key>This time location</key>
+	<string>本次地点</string>
+	<key>Thursday</key>
+	<string>周四</string>
+	<key>Time conflict detection is performed when saving.</key>
+	<string>保存时会进行时间冲突检测。</string>
+	<key>Time conflict found</key>
+	<string>发现时间冲突</string>
+	<key>Timetable management</key>
+	<string>课表管理</string>
+	<key>Total number of weeks edited</key>
+	<string>编辑总周数</string>
+	<key>Tuesday</key>
+	<string>周二</string>
+	<key>Unable to export</key>
+	<string>无法导出</string>
+	<key>Unable to import</key>
+	<string>无法导入</string>
+	<key>Unable to locate app document directory.</key>
+	<string>无法定位应用文稿目录。</string>
+	<key>Unable to open SQLite database.</key>
+	<string>无法打开 SQLite 数据库。</string>
+	<key>Unable to parse calendar event date.</key>
+	<string>无法解析日历事件日期。</string>
+	<key>Unable to read the current page content.</key>
+	<string>无法读取当前页面内容。</string>
+	<key>Unauthorized</key>
+	<string>未授权</string>
+	<key>Unknown version</key>
+	<string>未知版本</string>
+	<key>Useful functions such as export to calendar</key>
+	<string>导出到日历等实用功能</string>
+	<key>Version</key>
+	<string>版本</string>
+	<key>Web login</key>
+	<string>网页登录</string>
+	<key>WebView is not ready yet.</key>
+	<string>WebView 尚未准备好。</string>
+	<key>Wednesday</key>
+	<string>周三</string>
+	<key>Week</key>
+	<string>星期</string>
+	<key>Week %d</key>
+	<string>%d 周</string>
+	<key>Week out of range: %d, valid range is 1-%d</key>
+	<string>周次超出范围：%d，有效范围为 1-%d</string>
+	<key>Write permission only, click to upgrade to read and write.</key>
+	<string>仅写入权限，点击升级到可读写。</string>
+	<key>Write permission only, click to upgrade to read.</key>
+	<string>仅写入权限，点击升级到可读取。</string>
+	<key>Write permission only.</key>
+	<string>仅写入权限。</string>
+	<key>Write the class schedule into the system calendar.</key>
+	<string>把课表课程写入系统日历。</string>
+	<key>You can manually refresh the class schedule or system calendar when there are changes.</key>
+	<string>当课表或系统日历有变更时可手动刷新。</string>
+	<key>You need to allow access to the calendar before you can export the class schedule to the system calendar.</key>
+	<string>需要允许访问日历，才能把课表导出到系统日历。</string>
+	<key>about</key>
+	<string>关于</string>
+	<key>advance notice</key>
+	<string>提前通知</string>
+	<key>afternoon</key>
+	<string>下午</string>
+	<key>all</key>
+	<string>全部</string>
+	<key>allowed</key>
+	<string>已允许</string>
+	<key>application</key>
+	<string>应用</string>
+	<key>back to this week</key>
+	<string>回到本周</string>
+	<key>break time</key>
+	<string>课间时间</string>
+	<key>closure</key>
+	<string>关闭</string>
+	<key>course</key>
+	<string>课程</string>
+	<key>currently in use</key>
+	<string>当前使用</string>
+	<key>curriculum</key>
+	<string>课表</string>
+	<key>database</key>
+	<string>数据库</string>
+	<key>default</key>
+	<string>默认</string>
+	<key>delete</key>
+	<string>删除</string>
+	<key>end date</key>
+	<string>结束日期</string>
+	<key>end section</key>
+	<string>结束节</string>
+	<key>end time</key>
+	<string>结束时间</string>
+	<key>end week</key>
+	<string>结束周</string>
+	<key>ended</key>
+	<string>已结束</string>
+	<key>identify</key>
+	<string>识别</string>
+	<key>import</key>
+	<string>导入</string>
+	<key>in progress</key>
+	<string>进行中</string>
+	<key>knew</key>
+	<string>知道了</string>
+	<key>manage</key>
+	<string>管理</string>
+	<key>mistake</key>
+	<string>错误</string>
+	<key>morning</key>
+	<string>上午</string>
+	<key>name</key>
+	<string>名称</string>
+	<key>none</key>
+	<string>无</string>
+	<key>normal</key>
+	<string>正常</string>
+	<key>not set</key>
+	<string>未设置</string>
+	<key>on Monday</key>
+	<string>周一</string>
+	<key>restricted</key>
+	<string>受限制</string>
+	<key>save</key>
+	<string>保存</string>
+	<key>section</key>
+	<string>节次</string>
+	<key>set up</key>
+	<string>设置</string>
+	<key>several classes</key>
+	<string>几节课</string>
+	<key>single week</key>
+	<string>单周</string>
+	<key>start date</key>
+	<string>开始日期</string>
+	<key>start day of week</key>
+	<string>每周起始日</string>
+	<key>start section</key>
+	<string>开始节</string>
+	<key>start time</key>
+	<string>开始时间</string>
+	<key>start week</key>
+	<string>开始周</string>
+	<key>starts on monday</key>
+	<string>周一开始</string>
+	<key>state</key>
+	<string>状态</string>
+	<key>target calendar</key>
+	<string>目标日历</string>
+	<key>teacher</key>
+	<string>教师</string>
+	<key>template</key>
+	<string>模板</string>
+	<key>time</key>
+	<string>时间</string>
+	<key>tool</key>
+	<string>工具</string>
+	<key>total number of weeks</key>
+	<string>总周数</string>
+	<key>unknown</key>
+	<string>未知</string>
+	<key>unknown build</key>
+	<string>未知构建</string>
+	<key>write only</key>
+	<string>仅写入</string>
+	<key>write to</key>
+	<string>写入到</string>
+</dict>
+</plist>

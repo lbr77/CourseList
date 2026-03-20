@@ -67,8 +67,8 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
 
     private func makeRootController(context: Context) -> UIViewController {
         let controller = ConfigurableViewController(manifest: makeManifest())
-        controller.title = "设置"
-        controller.navigationItem.title = "设置"
+        controller.title = L10n.tr("set up")
+        controller.navigationItem.title = L10n.tr("set up")
         controller.navigationItem.largeTitleDisplayMode = .never
         if onCloseTap != nil {
             if #available(iOS 26.0, *) {
@@ -79,7 +79,7 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
                 )
             } else {
                 controller.navigationItem.leftBarButtonItem = UIBarButtonItem(
-                    title: "关闭",
+                    title: L10n.tr("closure"),
                     style: .plain,
                     target: context.coordinator,
                     action: #selector(Coordinator.closeTapped)
@@ -91,12 +91,12 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
 
     private func makeManifest() -> ConfigurableManifest {
         ConfigurableManifest(
-            title: "设置",
+            title: L10n.tr("set up"),
             list: [
                 ConfigurableObject(
                     icon: "calendar",
-                    title: "课表管理",
-                    explain: "管理课表",
+                    title: L10n.tr("Timetable management"),
+                    explain: L10n.tr("Manage class schedule"),
                     ephemeralAnnotation: .page {
                         TimetableManagementController(
                             repository: repository,
@@ -109,24 +109,24 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
                 ),
                 ConfigurableObject(
                     icon: "clock.badge",
-                    title: "节次模板",
-                    explain: "管理默认节次与模板",
+                    title: L10n.tr("Section template"),
+                    explain: L10n.tr("Manage default sections and templates"),
                     ephemeralAnnotation: .page {
                         PeriodTemplateManagementController(repository: repository)
                     }
                 ),
                 ConfigurableObject(
                     icon: "paintbrush",
-                    title: "外观设置",
-                    explain: "主题、颜色与显示方式",
+                    title: L10n.tr("Appearance settings"),
+                    explain: L10n.tr("Themes, colors and display"),
                     ephemeralAnnotation: .page {
                         TimetableAppearanceSettingsController()
                     }
                 ),
                 ConfigurableObject(
                     icon: "wrench.and.screwdriver",
-                    title: "工具",
-                    explain: "导出到日历等实用功能",
+                    title: L10n.tr("tool"),
+                    explain: L10n.tr("Useful functions such as export to calendar"),
                     ephemeralAnnotation: .page {
                         ToolSettingsController(
                             repository: repository,
@@ -136,15 +136,15 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
                 ),
                 ConfigurableObject(
                     icon: "lock.shield",
-                    title: "权限管理",
-                    explain: "通知、日历等系统权限",
+                    title: L10n.tr("Permission management"),
+                    explain: L10n.tr("Notifications, calendar and other system permissions"),
                     ephemeralAnnotation: .page {
                         NotificationPermissionSettingsController(repository: repository)
                     }
                 ),
                 ConfigurableObject(
                     icon: "info.circle",
-                    title: "关于",
+                    title: L10n.tr("about"),
                     explain: appVersionSummary,
                     ephemeralAnnotation: .page {
                         AboutSettingsController(
@@ -163,11 +163,11 @@ struct SettingsConfigurableView: UIViewControllerRepresentable {
     }
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "未知"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? L10n.tr("unknown")
     }
 
     private var appBuild: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "未知"
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? L10n.tr("unknown")
     }
 
     private var footerText: String {
@@ -214,7 +214,7 @@ private final class AboutSettingsController: SettingsReloadableStackScrollContro
         self.currentTimetable = currentTimetable
         self.bootstrapError = bootstrapError
         super.init(nibName: nil, bundle: nil)
-        title = "关于"
+        title = L10n.tr("about")
     }
 
     @available(*, unavailable)
@@ -224,28 +224,28 @@ private final class AboutSettingsController: SettingsReloadableStackScrollContro
 
     override func buildContent() {
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "应用")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("application"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
-        appendInfoField(icon: "app", title: "名称", value: "CourseList")
-        appendInfoField(icon: "tag", title: "版本", value: appVersion)
-        appendInfoField(icon: "number", title: "构建号", value: appBuild)
+        appendInfoField(icon: "app", title: L10n.tr("name"), value: "CourseList")
+        appendInfoField(icon: "tag", title: L10n.tr("Version"), value: appVersion)
+        appendInfoField(icon: "number", title: L10n.tr("Build number"), value: appBuild)
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "状态")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("state"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
         appendInfoField(
             icon: "internaldrive",
-            title: "数据库",
-            value: bootstrapError == nil ? "正常" : "初始化失败"
+            title: L10n.tr("database"),
+            value: bootstrapError == nil ? L10n.tr("normal") : L10n.tr("Initialization failed")
         )
         appendInfoField(
             icon: "calendar",
-            title: "当前课表",
-            value: currentTimetable?.name ?? "无"
+            title: L10n.tr("Current class schedule"),
+            value: currentTimetable?.name ?? L10n.tr("none")
         )
 
         if let bootstrapError {
@@ -259,11 +259,11 @@ private final class AboutSettingsController: SettingsReloadableStackScrollContro
     }
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "未知版本"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? L10n.tr("Unknown version")
     }
 
     private var appBuild: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "未知构建"
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? L10n.tr("unknown build")
     }
 
     private func appendInfoField(icon: String, title: String, value: String) {
@@ -283,10 +283,11 @@ private final class AboutSettingsController: SettingsReloadableStackScrollContro
 private final class TimetableAppearanceSettingsController: SettingsReloadableStackScrollController {
     private var visibleHourRange = TimetableVisibleHourRange.default
     private var weekStart = TimetableWeekStart.default
+    private var appLanguage = AppLanguage.default
 
     init() {
         super.init(nibName: nil, bundle: nil)
-        title = "外观设置"
+        title = L10n.tr("Appearance settings")
     }
 
     @available(*, unavailable)
@@ -298,14 +299,15 @@ private final class TimetableAppearanceSettingsController: SettingsReloadableSta
         super.viewWillAppear(animated)
         visibleHourRange = loadTimetableVisibleHourRange()
         weekStart = loadTimetableWeekStart()
+        appLanguage = L10n.currentLanguage()
         rebuildContent()
     }
 
     override func buildContent() {
         appendEditableField(
             icon: "clock",
-            title: "显示开始时间",
-            description: "课表顶部显示的起始小时",
+            title: L10n.tr("Show start time"),
+            description: L10n.tr("The starting hour shown at the top of the schedule"),
             value: hourLabel(visibleHourRange.startHour),
             placeholder: ""
         ) { [weak self] view in
@@ -314,8 +316,8 @@ private final class TimetableAppearanceSettingsController: SettingsReloadableSta
 
         appendEditableField(
             icon: "clock.arrow.trianglehead.counterclockwise.rotate.90",
-            title: "显示结束时间",
-            description: "课表底部显示到该小时",
+            title: L10n.tr("Show end time"),
+            description: L10n.tr("The hour is displayed at the bottom of the schedule"),
             value: hourLabel(visibleHourRange.endHour),
             placeholder: ""
         ) { [weak self] view in
@@ -324,16 +326,24 @@ private final class TimetableAppearanceSettingsController: SettingsReloadableSta
 
         appendMenuField(
             icon: "calendar",
-            title: "每周起始日",
-            description: "设置周视图从周天或周一开始",
+            title: L10n.tr("start day of week"),
+            description: L10n.tr("Set the week view to start on Sunday or Monday"),
             value: weekStart.label,
             menu: weekStartMenu()
+        )
+
+        appendMenuField(
+            icon: "globe",
+            title: L10n.tr("Language"),
+            description: L10n.tr("Switch app display language"),
+            value: appLanguage.title,
+            menu: languageMenu()
         )
 
         stackView.addArrangedSubview(SeparatorView())
         stackView.addArrangedSubviewWithMargin(
             ConfigurableSectionFooterView().with(
-                footer: "课表会按该范围拉伸显示，适合课程集中在白天时提高可读性。"
+                footer: L10n.tr("The class schedule will be stretched and displayed according to this range, which is suitable for improving readability when classes are concentrated during the day.")
             )
         )
         stackView.addArrangedSubviewWithMargin(UIView())
@@ -342,8 +352,8 @@ private final class TimetableAppearanceSettingsController: SettingsReloadableSta
     private func presentStartHourPicker(from view: UIView) {
         let options = Array(0 ... 23)
         let picker = SettingsAlertOptionPickerViewController(
-            title: "显示开始时间",
-            message: "选择课表从几点开始显示。",
+            title: L10n.tr("Show start time"),
+            message: L10n.tr("Select the time from which the class schedule will be displayed."),
             options: options.map(hourLabel),
             selectedIndex: options.firstIndex(of: visibleHourRange.startHour) ?? 0
         ) { [weak self] selectedIndex in
@@ -359,8 +369,8 @@ private final class TimetableAppearanceSettingsController: SettingsReloadableSta
         let options = Array((visibleHourRange.startHour + 1) ... 24)
         let selectedIndex = options.firstIndex(of: visibleHourRange.endHour) ?? max(0, options.count - 1)
         let picker = SettingsAlertOptionPickerViewController(
-            title: "显示结束时间",
-            message: "选择课表显示到几点。",
+            title: L10n.tr("Show end time"),
+            message: L10n.tr("Select until what time the class schedule is displayed."),
             options: options.map(hourLabel),
             selectedIndex: selectedIndex
         ) { [weak self] index in
@@ -381,6 +391,15 @@ private final class TimetableAppearanceSettingsController: SettingsReloadableSta
         weekStart = newWeekStart
         saveTimetableWeekStart(newWeekStart)
         NotificationCenter.default.post(name: .timetableAppearanceDidChange, object: nil)
+        rebuildContent()
+    }
+
+    private func updateLanguage(_ language: AppLanguage) {
+        guard language != appLanguage else { return }
+        appLanguage = language
+        L10n.setLanguage(language)
+        title = L10n.tr("Appearance settings")
+        navigationItem.title = title
         rebuildContent()
     }
 
@@ -421,6 +440,18 @@ private final class TimetableAppearanceSettingsController: SettingsReloadableSta
         }
         return UIMenu(options: [.displayInline], children: actions)
     }
+
+    private func languageMenu() -> UIMenu {
+        let actions = AppLanguage.allCases.map { option in
+            UIAction(
+                title: option.title,
+                state: option == appLanguage ? .on : .off
+            ) { [weak self] _ in
+                self?.updateLanguage(option)
+            }
+        }
+        return UIMenu(options: [.displayInline], children: actions)
+    }
 }
 
 @MainActor
@@ -436,7 +467,7 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
     init(repository: any TimetableRepositoryProtocol) {
         self.repository = repository
         super.init(nibName: nil, bundle: nil)
-        title = "权限管理"
+        title = L10n.tr("Permission management")
     }
 
     @available(*, unavailable)
@@ -462,8 +493,8 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
     override func buildContent() {
         appendSwitchField(
             icon: "bell.badge",
-            title: "课程提醒",
-            description: "上课前发送系统通知",
+            title: L10n.tr("Course reminder"),
+            description: L10n.tr("Send system notification before class"),
             isOn: isNotificationEnabled
         ) { [weak self] isOn in
             self?.updateNotificationEnabled(isOn)
@@ -471,8 +502,8 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
 
         appendEditableField(
             icon: "timer",
-            title: "提前通知",
-            description: "课程开始前多久提醒",
+            title: L10n.tr("advance notice"),
+            description: L10n.tr("How long before the course starts"),
             value: "\(leadMinutes) 分钟前",
             placeholder: ""
         ) { [weak self] view in
@@ -481,7 +512,7 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
 
         appendEditableField(
             icon: "calendar.badge.clock",
-            title: "日历访问权限",
+            title: L10n.tr("Calendar access"),
             description: calendarPermissionActionDescription,
             value: calendarAuthorizationStatusLabel(calendarAuthorizationStatus),
             placeholder: ""
@@ -499,8 +530,8 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
         let options = courseNotificationLeadMinuteOptions
         let selectedIndex = options.firstIndex(of: leadMinutes) ?? max(0, options.count - 1)
         let picker = SettingsAlertOptionPickerViewController(
-            title: "提前通知",
-            message: "选择课程开始前的提醒时间。",
+            title: L10n.tr("advance notice"),
+            message: L10n.tr("Choose a reminder time before the course starts."),
             options: options.map { "\($0) 分钟前" },
             selectedIndex: selectedIndex
         ) { [weak self] selectedIndex in
@@ -581,42 +612,42 @@ private final class NotificationPermissionSettingsController: SettingsReloadable
     private var calendarPermissionActionDescription: String {
         switch calendarAuthorizationStatus {
         case .notDetermined:
-            return "点击申请日历访问权限。"
+            return L10n.tr("Click Request calendar access.")
         case .restricted:
-            return "系统限制，无法修改。"
+            return L10n.tr("System limit and cannot be modified.")
         case .denied:
-            return "已拒绝，点击前往系统设置开启。"
+            return L10n.tr("Rejected, click to go to system settings to turn it on.")
         case .authorized:
-            return "已授权，可访问系统日历。"
+            return L10n.tr("Authorized to access the system calendar.")
         @unknown default:
             if #available(iOS 17.0, *) {
                 if calendarAuthorizationStatus == .writeOnly {
-                    return "仅写入权限。"
+                    return L10n.tr("Write permission only.")
                 }
                 if calendarAuthorizationStatus == .fullAccess {
-                    return "已授权，可访问系统日历。"
+                    return L10n.tr("Authorized to access the system calendar.")
                 }
             }
-            return "权限状态未知。"
+            return L10n.tr("Permission status is unknown.")
         }
     }
 
     private var footerText: String {
         switch authorizationStatus {
         case .authorized, .provisional, .ephemeral:
-            return "通知已可用；日历权限用于“工具 -> 导出到日历”。"
+            return L10n.tr("Notifications are available; calendar permissions are available in Tools -> Export to Calendar.")
         case .notDetermined:
-            return "通知未决定；启用课程提醒时会触发系统授权弹窗。"
+            return L10n.tr("The notification is undecided; system authorization pop-up window will be triggered when course reminder is enabled.")
         case .denied:
-            return "通知已被拒绝，可在系统设置中重新开启；日历权限可单独管理。"
+            return L10n.tr("Notifications have been denied and can be turned back on in system settings; calendar permissions can be managed separately.")
         @unknown default:
-            return "通知、日历等系统权限可在这里统一管理。"
+            return L10n.tr("System permissions such as notifications and calendars can be managed here.")
         }
     }
 
     private func presentError(_ error: Error) {
-        let alert = UIAlertController(title: "操作失败", message: error.localizedDescription, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "知道了", style: .default))
+        let alert = UIAlertController(title: L10n.tr("Operation failed"), message: error.localizedDescription, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: L10n.tr("knew"), style: .default))
         present(alert, animated: true)
     }
 
@@ -652,7 +683,7 @@ private final class ToolSettingsController: SettingsReloadableStackScrollControl
         self.repository = repository
         self.onRepositoryChanged = onRepositoryChanged
         super.init(nibName: nil, bundle: nil)
-        title = "工具"
+        title = L10n.tr("tool")
     }
 
     @available(*, unavailable)
@@ -662,7 +693,7 @@ private final class ToolSettingsController: SettingsReloadableStackScrollControl
 
     override func buildContent() {
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "工具")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("tool"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
@@ -671,13 +702,13 @@ private final class ToolSettingsController: SettingsReloadableStackScrollControl
             return CalendarExportSettingsController(repository: self.repository)
         })
         page.configure(icon: UIImage(systemName: "calendar.badge.plus"))
-        page.configure(title: "导出到日历")
-        page.configure(description: "把课表课程写入系统日历。")
+        page.configure(title: L10n.tr("Export to calendar"))
+        page.configure(description: L10n.tr("Write the class schedule into the system calendar."))
         stackView.addArrangedSubviewWithMargin(page)
         stackView.addArrangedSubview(SeparatorView())
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionFooterView().with(footer: "导出不会修改课表数据，只会写入系统日历。")
+            ConfigurableSectionFooterView().with(footer: L10n.tr("The export will not modify the class schedule data, it will only be written to the system calendar."))
         )
         stackView.addArrangedSubviewWithMargin(UIView())
     }
@@ -735,7 +766,7 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
         timetableName = "日历导入 \(formatDateInput(Date()))"
 
         super.init(nibName: nil, bundle: nil)
-        title = "导入日历"
+        title = L10n.tr("Import calendar")
     }
 
     @available(*, unavailable)
@@ -752,7 +783,7 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
     override func buildContent() {
         appendEditableField(
             icon: "calendar.badge.clock",
-            title: "日历读取权限",
+            title: L10n.tr("Calendar read permission"),
             description: calendarPermissionActionDescription,
             value: calendarAuthorizationStatusLabel(calendarAuthorizationStatus),
             placeholder: ""
@@ -762,20 +793,20 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
 
         guard hasCalendarReadPermission(status: calendarAuthorizationStatus) else {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "需要允许读取日历，才能导入系统日历事件。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("Calendar reading needs to be allowed before system calendar events can be imported."))
             )
             stackView.addArrangedSubviewWithMargin(UIView())
             return
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "来源日历")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("Source Calendar"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
         if availableCalendars.isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "当前没有可读取的系统日历。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("There is currently no system calendar to read."))
             )
             stackView.addArrangedSubview(SeparatorView())
         } else {
@@ -792,14 +823,14 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "导入设置")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("Import settings"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
         appendEditableField(
             icon: "textformat",
-            title: "课表名称",
-            description: "导入后会创建一个新的课表。",
+            title: L10n.tr("Class schedule name"),
+            description: L10n.tr("After importing, a new class schedule will be created."),
             value: timetableName,
             placeholder: ""
         ) { [weak self] view in
@@ -808,8 +839,8 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
 
         appendEditableField(
             icon: "calendar",
-            title: "开始日期",
-            description: "只导入该日期及之后的事件。",
+            title: L10n.tr("start date"),
+            description: L10n.tr("Only events on and after this date will be imported."),
             value: formatDateInput(rangeStartDate),
             placeholder: ""
         ) { [weak self] view in
@@ -818,8 +849,8 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
 
         appendEditableField(
             icon: "calendar",
-            title: "结束日期",
-            description: "只导入该日期及之前的事件。",
+            title: L10n.tr("end date"),
+            description: L10n.tr("Only events on and before this date will be imported."),
             value: formatDateInput(rangeEndDate),
             placeholder: ""
         ) { [weak self] view in
@@ -830,7 +861,7 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
             self?.startImport()
         }
         importAction.configure(icon: UIImage(systemName: isImporting ? "hourglass" : "square.and.arrow.down"))
-        importAction.configure(title: isImporting ? "正在导入…" : "开始导入")
+        importAction.configure(title: isImporting ? L10n.tr("Importing…") : L10n.tr("Start importing"))
         importAction.configure(description: "\(selectedCalendarIDs.count) 个日历 · \(formatDateInput(rangeStartDate)) 至 \(formatDateInput(rangeEndDate))")
         importAction.isUserInteractionEnabled = !isImporting
         stackView.addArrangedSubviewWithMargin(importAction)
@@ -841,14 +872,14 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
             self?.rebuildContent()
         }
         refreshAction.configure(icon: UIImage(systemName: "arrow.clockwise"))
-        refreshAction.configure(title: "刷新日历列表")
-        refreshAction.configure(description: "当系统日历有变更时可手动刷新。")
+        refreshAction.configure(title: L10n.tr("Refresh calendar list"))
+        refreshAction.configure(description: L10n.tr("The system calendar can be refreshed manually when there are changes."))
         stackView.addArrangedSubviewWithMargin(refreshAction)
         stackView.addArrangedSubview(SeparatorView())
 
         stackView.addArrangedSubviewWithMargin(
             ConfigurableSectionFooterView().with(
-                footer: "导入规则：全天事件和跨天事件会被忽略；其余事件会按周次与星期自动转换。"
+                footer: L10n.tr("Import rules: All-day events and cross-day events will be ignored; remaining events will be automatically converted by week and week.")
             )
         )
         stackView.addArrangedSubviewWithMargin(UIView())
@@ -931,11 +962,11 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
             return
         }
         guard !selectedCalendarIDs.isEmpty else {
-            presentMessage(title: "无法导入", message: "请至少选择一个日历。")
+            presentMessage(title: L10n.tr("Unable to import"), message: L10n.tr("Please select at least one calendar."))
             return
         }
         guard rangeStartDate <= rangeEndDate else {
-            presentMessage(title: "日期范围无效", message: "结束日期不能早于开始日期。")
+            presentMessage(title: L10n.tr("Invalid date range"), message: L10n.tr("End date cannot be earlier than start date."))
             return
         }
 
@@ -952,7 +983,7 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
                 isImporting = false
                 rebuildContent()
                 presentMessage(
-                    title: "导入完成",
+                    title: L10n.tr("Import completed"),
                     message: "已创建课表「\(draft.name)」，共 \(draft.courses.count) 门课程。"
                 ) { [weak self] in
                     self?.navigationController?.popViewController(animated: true)
@@ -968,13 +999,13 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
     private func buildImportDraft() throws -> ImportedTimetableDraft {
         let selectedCalendars = availableCalendars.filter { selectedCalendarIDs.contains($0.calendarIdentifier) }
         guard !selectedCalendars.isEmpty else {
-            throw AppError.validation("请至少选择一个日历。")
+            throw AppError.validation(L10n.tr("Please select at least one calendar."))
         }
 
         let rangeStart = calendar.startOfDay(for: rangeStartDate)
         let rangeEnd = calendar.startOfDay(for: rangeEndDate)
         guard let endExclusive = calendar.date(byAdding: .day, value: 1, to: rangeEnd) else {
-            throw AppError.validation("导入日期范围无效。")
+            throw AppError.validation(L10n.tr("Invalid import date range."))
         }
 
         let predicate = eventStore.predicateForEvents(withStart: rangeStart, end: endExclusive, calendars: selectedCalendars)
@@ -1017,7 +1048,7 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
             }
 
             let normalizedTitle = normalizeWhitespace(event.title)
-            let name = normalizedTitle.isEmpty ? "日历事件" : normalizedTitle
+            let name = normalizedTitle.isEmpty ? L10n.tr("Calendar events") : normalizedTitle
             let location = normalizeOptionalText(event.location)
             let note = normalizeOptionalText(event.notes)
             let day = calendar.startOfDay(for: event.startDate)
@@ -1039,13 +1070,13 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
         }
 
         guard !preparedEvents.isEmpty else {
-            throw AppError.validation("选择范围内没有可导入的日历事件（全天事件、跨天事件会被忽略）。")
+            throw AppError.validation(L10n.tr("There are no calendar events that can be imported within the selection range (all-day events and cross-day events will be ignored)."))
         }
 
         guard let firstDay = preparedEvents.map(\.day).min(),
               let lastDay = preparedEvents.map(\.day).max()
         else {
-            throw AppError.validation("无法解析日历事件日期。")
+            throw AppError.validation(L10n.tr("Unable to parse calendar event date."))
         }
 
         let importStartDate = startOfWeekMonday(for: firstDay)
@@ -1063,7 +1094,7 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
             return $0.endMinute < $1.endMinute
         }
         guard !slots.isEmpty else {
-            throw AppError.validation("导入失败：无法生成节次。")
+            throw AppError.validation(L10n.tr("Import failed: Unable to generate section."))
         }
 
         var periodBySlot: [TimeSlot: Int] = [:]
@@ -1162,7 +1193,7 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
         }
 
         guard !courses.isEmpty else {
-            throw AppError.validation("导入失败：没有可用课程数据。")
+            throw AppError.validation(L10n.tr("Import failed: No course data available."))
         }
 
         var warnings: [ImportWarning] = []
@@ -1190,7 +1221,7 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
             warnings: warnings,
             source: .init(
                 adapterId: "system-calendar",
-                adapterLabel: "系统日历",
+                adapterLabel: L10n.tr("System calendar"),
                 capturedAt: nowISO8601String(),
                 url: "local://calendar",
                 title: selectedCalendarTitle.isEmpty ? nil : selectedCalendarTitle
@@ -1200,12 +1231,12 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
 
     private func presentNameEditor(from view: UIView) {
         let input = AlertInputViewController(
-            title: "课表名称",
-            message: "导入后会创建新的课表。",
+            title: L10n.tr("Class schedule name"),
+            message: L10n.tr("After importing, a new class schedule will be created."),
             placeholder: "",
             text: timetableName,
-            cancelButtonText: "取消",
-            doneButtonText: "确定"
+            cancelButtonText: L10n.tr("Cancel"),
+            doneButtonText: L10n.tr("Sure")
         ) { [weak self] value in
             guard let self else { return }
             timetableName = value
@@ -1217,8 +1248,8 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
     private func presentDateEditor(from view: UIView, editingStart: Bool) {
         let selectedDate = editingStart ? rangeStartDate : rangeEndDate
         let picker = AlertDatePickerViewController(
-            title: editingStart ? "开始日期" : "结束日期",
-            message: "选择导入日期。",
+            title: editingStart ? L10n.tr("start date") : L10n.tr("end date"),
+            message: L10n.tr("Select the import date."),
             mode: .date,
             selectedDate: selectedDate
         ) { [weak self] date in
@@ -1252,23 +1283,23 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
     private var calendarPermissionActionDescription: String {
         switch calendarAuthorizationStatus {
         case .notDetermined:
-            return "点击申请读取日历权限。"
+            return L10n.tr("Click to apply for permission to read the calendar.")
         case .restricted:
-            return "系统限制，无法修改。"
+            return L10n.tr("System limit and cannot be modified.")
         case .denied:
-            return "已拒绝，点击前往系统设置开启。"
+            return L10n.tr("Rejected, click to go to system settings to turn it on.")
         case .authorized:
-            return "已授权，可读取系统日历。"
+            return L10n.tr("Authorized to read the system calendar.")
         @unknown default:
             if #available(iOS 17.0, *) {
                 if calendarAuthorizationStatus == .writeOnly {
-                    return "仅写入权限，点击升级到可读取。"
+                    return L10n.tr("Write permission only, click to upgrade to read.")
                 }
                 if calendarAuthorizationStatus == .fullAccess {
-                    return "已授权，可读取系统日历。"
+                    return L10n.tr("Authorized to read the system calendar.")
                 }
             }
-            return "权限状态未知。"
+            return L10n.tr("Permission status is unknown.")
         }
     }
 
@@ -1322,12 +1353,12 @@ private final class CalendarImportSettingsController: SettingsReloadableStackScr
 
     private func presentMessage(title: String, message: String, completion: (() -> Void)? = nil) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "知道了", style: .default) { _ in completion?() })
+        alert.addAction(UIAlertAction(title: L10n.tr("knew"), style: .default) { _ in completion?() })
         present(alert, animated: true)
     }
 
     private func presentError(_ error: Error) {
-        presentMessage(title: "导入失败", message: error.localizedDescription)
+        presentMessage(title: L10n.tr("Import failed"), message: error.localizedDescription)
     }
 
     private func appendSwitchField(icon: String, title: String, description: String?, isOn: Bool, onToggle: @escaping (Bool) -> Void) {
@@ -1398,7 +1429,7 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
         rangeEndDate = Calendar(identifier: .gregorian).date(byAdding: .day, value: 16 * 7, to: today) ?? today
 
         super.init(nibName: nil, bundle: nil)
-        title = "导出到日历"
+        title = L10n.tr("Export to calendar")
     }
 
     @available(*, unavailable)
@@ -1418,7 +1449,7 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
     override func buildContent() {
         appendEditableField(
             icon: "calendar.badge.clock",
-            title: "日历访问权限",
+            title: L10n.tr("Calendar access"),
             description: calendarPermissionActionDescription,
             value: calendarAuthorizationStatusLabel(calendarAuthorizationStatus),
             placeholder: ""
@@ -1428,28 +1459,28 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
 
         guard hasCalendarReadPermission(status: calendarAuthorizationStatus) else {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "需要允许访问日历，才能把课表导出到系统日历。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("You need to allow access to the calendar before you can export the class schedule to the system calendar."))
             )
             stackView.addArrangedSubviewWithMargin(UIView())
             return
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "来源课表")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("Source schedule"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
         if availableTimetables.isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "当前还没有课表，请先新建课表或导入课表。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("There is currently no class schedule. Please create a new class schedule or import a class schedule first."))
             )
             stackView.addArrangedSubview(SeparatorView())
         } else {
             appendEditableField(
                 icon: "tablecells",
-                title: "课表",
+                title: L10n.tr("curriculum"),
                 description: selectedTimetable.map { buildTimetableSummary($0) },
-                value: selectedTimetable?.name ?? "请选择",
+                value: selectedTimetable?.name ?? L10n.tr("Please select"),
                 placeholder: ""
             ) { [weak self] view in
                 self?.presentTimetablePicker(from: view)
@@ -1457,21 +1488,21 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "目标日历")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("target calendar"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
         if availableCalendars.isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "当前没有可写入的系统日历。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("There are currently no system calendars available for writing."))
             )
             stackView.addArrangedSubview(SeparatorView())
         } else {
             appendEditableField(
                 icon: "calendar",
-                title: "写入到",
-                description: selectedCalendar?.source.title ?? "请选择要写入的系统日历。",
-                value: selectedCalendar?.title ?? "请选择",
+                title: L10n.tr("write to"),
+                description: selectedCalendar?.source.title ?? L10n.tr("Please select a system calendar to write to."),
+                value: selectedCalendar?.title ?? L10n.tr("Please select"),
                 placeholder: ""
             ) { [weak self] view in
                 self?.presentCalendarPicker(from: view)
@@ -1479,14 +1510,14 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "导出设置")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("Export settings"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
         appendEditableField(
             icon: "calendar",
-            title: "开始日期",
-            description: "只导出该日期及之后的课程。",
+            title: L10n.tr("start date"),
+            description: L10n.tr("Only courses on and after this date will be exported."),
             value: formatDateInput(rangeStartDate),
             placeholder: ""
         ) { [weak self] view in
@@ -1495,22 +1526,22 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
 
         appendEditableField(
             icon: "calendar",
-            title: "结束日期",
-            description: "只导出该日期及之前的课程。",
+            title: L10n.tr("end date"),
+            description: L10n.tr("Only courses on and before this date will be exported."),
             value: formatDateInput(rangeEndDate),
             placeholder: ""
         ) { [weak self] view in
             self?.presentDateEditor(from: view, editingStart: false)
         }
 
-        let timetableName = selectedTimetable?.name ?? "未选择课表"
-        let calendarName = selectedCalendar?.title ?? "未选择日历"
+        let timetableName = selectedTimetable?.name ?? L10n.tr("No class schedule selected")
+        let calendarName = selectedCalendar?.title ?? L10n.tr("No calendar selected")
 
         let exportAction = ConfigurableActionView { [weak self] _ in
             self?.startExport()
         }
         exportAction.configure(icon: UIImage(systemName: isExporting ? "hourglass" : "square.and.arrow.up"))
-        exportAction.configure(title: isExporting ? "正在导出…" : "开始导出")
+        exportAction.configure(title: isExporting ? L10n.tr("Exporting…") : L10n.tr("Start export"))
         exportAction.configure(
             description: "\(timetableName) -> \(calendarName) · \(formatDateInput(rangeStartDate)) 至 \(formatDateInput(rangeEndDate))"
         )
@@ -1527,14 +1558,14 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
             }
         }
         refreshAction.configure(icon: UIImage(systemName: "arrow.clockwise"))
-        refreshAction.configure(title: "刷新数据")
-        refreshAction.configure(description: "当课表或系统日历有变更时可手动刷新。")
+        refreshAction.configure(title: L10n.tr("Refresh data"))
+        refreshAction.configure(description: L10n.tr("You can manually refresh the class schedule or system calendar when there are changes."))
         stackView.addArrangedSubviewWithMargin(refreshAction)
         stackView.addArrangedSubview(SeparatorView())
 
         stackView.addArrangedSubviewWithMargin(
             ConfigurableSectionFooterView().with(
-                footer: "导出规则：会先删除当前课表在目标日历同范围内由 CourseList 创建的事件，再写入最新课程。"
+                footer: L10n.tr("Export rules: Events created by CourseList in the same range of the target calendar of the current class schedule will be deleted first, and then the latest courses will be written.")
             )
         )
         stackView.addArrangedSubviewWithMargin(UIView())
@@ -1653,15 +1684,15 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
             return
         }
         guard selectedTimetable != nil else {
-            presentMessage(title: "无法导出", message: "请先选择课表。")
+            presentMessage(title: L10n.tr("Unable to export"), message: L10n.tr("Please select your class schedule first."))
             return
         }
         guard selectedCalendar != nil else {
-            presentMessage(title: "无法导出", message: "请先选择目标日历。")
+            presentMessage(title: L10n.tr("Unable to export"), message: L10n.tr("Please select a destination calendar first."))
             return
         }
         guard rangeStartDate <= rangeEndDate else {
-            presentMessage(title: "日期范围无效", message: "结束日期不能早于开始日期。")
+            presentMessage(title: L10n.tr("Invalid date range"), message: L10n.tr("End date cannot be earlier than start date."))
             return
         }
 
@@ -1681,7 +1712,7 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
                 } else {
                     message = "已写入 \(summary.createdCount) 条课程事件，替换 \(summary.removedCount) 条旧事件。"
                 }
-                presentMessage(title: "导出完成", message: message) { [weak self] in
+                presentMessage(title: L10n.tr("Export completed"), message: message) { [weak self] in
                     self?.navigationController?.popViewController(animated: true)
                 }
             } catch {
@@ -1694,20 +1725,20 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
 
     private func exportTimetableToCalendar() async throws -> ExportSummary {
         guard let timetable = selectedTimetable else {
-            throw AppError.validation("请先选择课表。")
+            throw AppError.validation(L10n.tr("Please select your class schedule first."))
         }
         guard let targetCalendar = selectedCalendar else {
-            throw AppError.validation("请先选择目标日历。")
+            throw AppError.validation(L10n.tr("Please select a destination calendar first."))
         }
         guard let parsedStartDate = parseDateInput(timetable.startDate) else {
-            throw AppError.validation("课表开学日期无效。")
+            throw AppError.validation(L10n.tr("The schedule start date is invalid."))
         }
 
         let timetableStartDay = calendar.startOfDay(for: parsedStartDate)
         let rangeStart = calendar.startOfDay(for: rangeStartDate)
         let rangeEnd = calendar.startOfDay(for: rangeEndDate)
         guard let rangeEndExclusive = calendar.date(byAdding: .day, value: 1, to: rangeEnd) else {
-            throw AppError.validation("导出日期范围无效。")
+            throw AppError.validation(L10n.tr("Invalid export date range."))
         }
 
         async let periodsTask = repository.listPeriods(timetableId: timetable.id)
@@ -1779,7 +1810,7 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
         }
 
         guard !eventDrafts.isEmpty else {
-            throw AppError.validation("选择范围内没有可导出的课程。")
+            throw AppError.validation(L10n.tr("There are no exportable courses in the selection."))
         }
 
         let predicate = eventStore.predicateForEvents(withStart: rangeStart, end: rangeEndExclusive, calendars: [targetCalendar])
@@ -1820,8 +1851,8 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
         let options = availableTimetables.map(\.name)
         let selectedIndex = availableTimetables.firstIndex { $0.id == selectedTimetableID } ?? 0
         let picker = SettingsAlertOptionPickerViewController(
-            title: "选择课表",
-            message: "选择要导出到日历的课表。",
+            title: L10n.tr("Select class schedule"),
+            message: L10n.tr("Select the class schedule to export to the calendar."),
             options: options,
             selectedIndex: selectedIndex
         ) { [weak self] index in
@@ -1839,8 +1870,8 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
         let options = availableCalendars.map(\.title)
         let selectedIndex = availableCalendars.firstIndex { $0.calendarIdentifier == selectedCalendarID } ?? 0
         let picker = SettingsAlertOptionPickerViewController(
-            title: "选择目标日历",
-            message: "选择系统日历中的目标日历。",
+            title: L10n.tr("Select target calendar"),
+            message: L10n.tr("Select the target calendar from the system calendar."),
             options: options,
             selectedIndex: selectedIndex
         ) { [weak self] index in
@@ -1854,8 +1885,8 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
     private func presentDateEditor(from view: UIView, editingStart: Bool) {
         let selectedDate = editingStart ? rangeStartDate : rangeEndDate
         let picker = AlertDatePickerViewController(
-            title: editingStart ? "开始日期" : "结束日期",
-            message: "选择导出日期。",
+            title: editingStart ? L10n.tr("start date") : L10n.tr("end date"),
+            message: L10n.tr("Select the export date."),
             mode: .date,
             selectedDate: selectedDate
         ) { [weak self] date in
@@ -1949,34 +1980,34 @@ private final class CalendarExportSettingsController: SettingsReloadableStackScr
     private var calendarPermissionActionDescription: String {
         switch calendarAuthorizationStatus {
         case .notDetermined:
-            return "点击申请日历访问权限。"
+            return L10n.tr("Click Request calendar access.")
         case .restricted:
-            return "系统限制，无法修改。"
+            return L10n.tr("System limit and cannot be modified.")
         case .denied:
-            return "已拒绝，点击前往系统设置开启。"
+            return L10n.tr("Rejected, click to go to system settings to turn it on.")
         case .authorized:
-            return "已授权，可访问系统日历。"
+            return L10n.tr("Authorized to access the system calendar.")
         @unknown default:
             if #available(iOS 17.0, *) {
                 if calendarAuthorizationStatus == .writeOnly {
-                    return "仅写入权限，点击升级到可读写。"
+                    return L10n.tr("Write permission only, click to upgrade to read and write.")
                 }
                 if calendarAuthorizationStatus == .fullAccess {
-                    return "已授权，可读写系统日历。"
+                    return L10n.tr("Authorized to read and write the system calendar.")
                 }
             }
-            return "权限状态未知。"
+            return L10n.tr("Permission status is unknown.")
         }
     }
 
     private func presentMessage(title: String, message: String, completion: (() -> Void)? = nil) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "知道了", style: .default) { _ in completion?() })
+        alert.addAction(UIAlertAction(title: L10n.tr("knew"), style: .default) { _ in completion?() })
         present(alert, animated: true)
     }
 
     private func presentError(_ error: Error) {
-        presentMessage(title: "导出失败", message: error.localizedDescription)
+        presentMessage(title: L10n.tr("Export failed"), message: error.localizedDescription)
     }
 
     private func appendEditableField(icon: String, title: String, description: String?, value: String, placeholder: String, tap: @escaping (ConfigurableInfoView) -> Void) {
@@ -2002,32 +2033,32 @@ private func calendarAuthorizationStatusLabel(_ status: EKAuthorizationStatus) -
     if #available(iOS 17.0, *) {
         switch status {
         case .fullAccess:
-            return "已允许"
+            return L10n.tr("allowed")
         case .writeOnly:
-            return "仅写入"
+            return L10n.tr("write only")
         case .notDetermined:
-            return "未授权"
+            return L10n.tr("Unauthorized")
         case .restricted:
-            return "受限制"
+            return L10n.tr("restricted")
         case .denied:
-            return "已拒绝"
+            return L10n.tr("Rejected")
         case .authorized:
-            return "已允许"
+            return L10n.tr("allowed")
         @unknown default:
-            return "未知"
+            return L10n.tr("unknown")
         }
     } else {
         switch status {
         case .notDetermined:
-            return "未授权"
+            return L10n.tr("Unauthorized")
         case .restricted:
-            return "受限制"
+            return L10n.tr("restricted")
         case .denied:
-            return "已拒绝"
+            return L10n.tr("Rejected")
         case .authorized:
-            return "已允许"
+            return L10n.tr("allowed")
         @unknown default:
-            return "未知"
+            return L10n.tr("unknown")
         }
     }
 }
@@ -2098,7 +2129,7 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
     init(repository: any TimetableRepositoryProtocol) {
         self.repository = repository
         super.init(nibName: nil, bundle: nil)
-        title = "节次模板"
+        title = L10n.tr("Section template")
     }
 
     @available(*, unavailable)
@@ -2124,7 +2155,7 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
     override func buildContent() {
         if isLoading && !hasLoadedOnce {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "正在读取节次模板…")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("Reading section template..."))
             )
             stackView.addArrangedSubviewWithMargin(UIView())
             return
@@ -2139,13 +2170,13 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "模板")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("template"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
         if templates.isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "还没有节次模板，点击右上角 + 新建。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("There is no section template yet, click + New in the upper right corner."))
             )
             stackView.addArrangedSubview(SeparatorView())
         } else {
@@ -2155,7 +2186,7 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
                 }
                 action.configure(icon: UIImage(systemName: template.isDefault ? "star.circle.fill" : "clock.badge"))
                 action.configure(title: template.name)
-                action.configure(description: template.isDefault ? "默认模板 · 点击编辑" : "点击编辑节次")
+                action.configure(description: template.isDefault ? L10n.tr("Default template · Click to edit") : L10n.tr("Click to edit section"))
                 stackView.addArrangedSubviewWithMargin(action)
                 stackView.addArrangedSubview(SeparatorView())
             }
@@ -2217,12 +2248,12 @@ private final class PeriodTemplateManagementController: SettingsReloadableStackS
 
     private var statusFooterText: String {
         if isRefreshing {
-            return "正在刷新节次模板…"
+            return L10n.tr("Refreshing section template...")
         }
         if let refreshError {
             return "刷新失败：\(refreshError.localizedDescription)"
         }
-        return "默认模板会用于新建课表的初始节次；现有课表不会自动变更。"
+        return L10n.tr("The default template will be used for the initial sections of the new class schedule; existing class schedules will not be automatically changed.")
     }
 }
 
@@ -2243,7 +2274,7 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
         self.templateId = templateId
         self.onFinished = onFinished
         super.init(nibName: nil, bundle: nil)
-        title = templateId == nil ? "新建模板" : "编辑模板"
+        title = templateId == nil ? L10n.tr("Create new template") : L10n.tr("Edit template")
     }
 
     @available(*, unavailable)
@@ -2278,7 +2309,7 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
     override func buildContent() {
         if isLoading {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "正在读取模板…")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("Reading template…"))
             )
             stackView.addArrangedSubviewWithMargin(UIView())
             return
@@ -2294,8 +2325,8 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
 
         appendEditableField(
             icon: "textformat",
-            title: "模板名称",
-            description: isDefaultTemplate ? "当前默认模板" : nil,
+            title: L10n.tr("Template name"),
+            description: isDefaultTemplate ? L10n.tr("Current default template") : nil,
             value: templateName,
             placeholder: ""
         ) { [weak self] view in
@@ -2303,7 +2334,7 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "节次")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("section"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
@@ -2326,7 +2357,7 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
 
         if periods.isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "当前还没有节次，请先添加节次。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("There is currently no section, please add a section first."))
             )
             stackView.addArrangedSubview(SeparatorView())
         }
@@ -2335,13 +2366,13 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
             self?.presentAddMenu()
         }
         addAction.configure(icon: UIImage(systemName: "plus.circle"))
-        addAction.configure(title: "添加节次")
+        addAction.configure(title: L10n.tr("Add section"))
         stackView.addArrangedSubviewWithMargin(addAction)
         stackView.addArrangedSubview(SeparatorView())
 
         if templateId != nil {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionHeaderView().with(header: "管理")
+                ConfigurableSectionHeaderView().with(header: L10n.tr("manage"))
             ) { $0.bottom /= 2 }
             stackView.addArrangedSubview(SeparatorView())
 
@@ -2350,8 +2381,8 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
                     self?.setAsDefaultTemplate()
                 }
                 defaultAction.configure(icon: UIImage(systemName: "star"))
-                defaultAction.configure(title: "设为默认模板")
-                defaultAction.configure(description: "新建课表时默认使用这套节次。")
+                defaultAction.configure(title: L10n.tr("Set as default template"))
+                defaultAction.configure(description: L10n.tr("This set of sections is used by default when creating a new class schedule."))
                 stackView.addArrangedSubviewWithMargin(defaultAction)
                 stackView.addArrangedSubview(SeparatorView())
             }
@@ -2360,8 +2391,8 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
                 self?.promptDeleteTemplate()
             }
             deleteAction.configure(icon: UIImage(systemName: "trash"))
-            deleteAction.configure(title: "删除模板")
-            deleteAction.configure(description: "删除这个节次模板。若它是默认模板，会自动切换到其它模板。")
+            deleteAction.configure(title: L10n.tr("Delete template"))
+            deleteAction.configure(description: L10n.tr("Delete this section template."))
             deleteAction.titleLabel.textColor = .systemRed
             deleteAction.iconView.tintColor = .systemRed
             deleteAction.descriptionLabel.textColor = .systemRed
@@ -2382,7 +2413,7 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
                 let items = try await itemsTask
 
                 guard let template else {
-                    throw AppError.validation("模板不存在。")
+                    throw AppError.validation(L10n.tr("Template does not exist."))
                 }
 
                 templateName = template.name
@@ -2422,12 +2453,12 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
 
     private func presentNameEditor(from view: UIView) {
         let input = AlertInputViewController(
-            title: "编辑模板名称",
-            message: "请输入模板名称。",
+            title: L10n.tr("Edit template name"),
+            message: L10n.tr("Please enter a template name."),
             placeholder: "",
             text: templateName,
-            cancelButtonText: "取消",
-            doneButtonText: "确定"
+            cancelButtonText: L10n.tr("Cancel"),
+            doneButtonText: L10n.tr("Sure")
         ) { [weak self] output in
             self?.templateName = output
             self?.rebuildContent()
@@ -2436,16 +2467,16 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
     }
 
     private func presentAddMenu() {
-        let alert = AlertViewController(title: "添加节次", message: "请选择添加方式。") { [weak self] context in
-            context.addAction(title: "取消") {
+        let alert = AlertViewController(title: L10n.tr("Add section"), message: L10n.tr("Please select how to add.")) { [weak self] context in
+            context.addAction(title: L10n.tr("Cancel")) {
                 context.dispose()
             }
-            context.addAction(title: "添加单节", attribute: .accent) {
+            context.addAction(title: L10n.tr("Add single section"), attribute: .accent) {
                 context.dispose {
                     self?.addSinglePeriod()
                 }
             }
-            context.addAction(title: "批量添加") {
+            context.addAction(title: L10n.tr("Add in batches")) {
                 context.dispose {
                     self?.presentBatchAddPrompt()
                 }
@@ -2498,13 +2529,13 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
 
     private func promptDeleteTemplate() {
         let alert = AlertViewController(
-            title: "删除模板",
-            message: "确定删除这个节次模板吗？此操作无法撤销。"
+            title: L10n.tr("Delete template"),
+            message: L10n.tr("Are you sure you want to delete this section template?")
         ) { [weak self] context in
-            context.addAction(title: "取消") {
+            context.addAction(title: L10n.tr("Cancel")) {
                 context.dispose()
             }
-            context.addAction(title: "删除", attribute: .accent) {
+            context.addAction(title: L10n.tr("delete"), attribute: .accent) {
                 context.dispose {
                     self?.deleteTemplate()
                 }
@@ -2537,12 +2568,12 @@ private final class PeriodTemplateEditorController: SettingsReloadableStackScrol
     }
 
     private func presentError(_ error: Error) {
-        presentMessage(title: "操作失败", message: error.localizedDescription)
+        presentMessage(title: L10n.tr("Operation failed"), message: error.localizedDescription)
     }
 
     private func presentMessage(title: String, message: String) {
         let alert = AlertViewController(title: title, message: message) { context in
-            context.addAction(title: "确定", attribute: .accent) {
+            context.addAction(title: L10n.tr("Sure"), attribute: .accent) {
                 context.dispose()
             }
         }
@@ -2609,8 +2640,8 @@ private final class SettingsAlertOptionPickerViewController: AlertViewController
         message: String = "",
         options: [String],
         selectedIndex: Int,
-        cancelButtonText: String = "取消",
-        doneButtonText: String = "确定",
+        cancelButtonText: String = L10n.tr("Cancel"),
+        doneButtonText: String = L10n.tr("Sure"),
         onConfirm: @escaping (Int) -> Void
     ) {
         var controller: SettingsAlertOptionPickerContentController!
@@ -2655,7 +2686,7 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
     init(onConfirm: @escaping ([TimetablePeriodInput]) -> Void) {
         self.onConfirm = onConfirm
         super.init(nibName: nil, bundle: nil)
-        title = "批量添加节次"
+        title = L10n.tr("Add sections in batches")
     }
 
     @available(*, unavailable)
@@ -2686,7 +2717,7 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
     override func buildContent() {
         appendEditableField(
             icon: "timer",
-            title: "每节时长",
+            title: L10n.tr("Duration of each section"),
             description: nil,
             value: "\(durationMinutes) 分钟",
             placeholder: ""
@@ -2696,7 +2727,7 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
 
         appendEditableField(
             icon: "pause.circle",
-            title: "课间时间",
+            title: L10n.tr("break time"),
             description: nil,
             value: "\(breakMinutes) 分钟",
             placeholder: ""
@@ -2705,18 +2736,18 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "上午")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("morning"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
         appendEditableField(
             icon: "sun.max",
-            title: "开始时间",
+            title: L10n.tr("start time"),
             description: nil,
-            value: morningStartTime.isEmpty ? "未设置" : morningStartTime,
+            value: morningStartTime.isEmpty ? L10n.tr("not set") : morningStartTime,
             placeholder: ""
         ) { [weak self] view in
-            self?.presentTimePicker(from: view, title: "上午第一节开始时间", currentValue: self?.morningStartTime ?? "") { newValue in
+            self?.presentTimePicker(from: view, title: L10n.tr("Start time of the first session in the morning"), currentValue: self?.morningStartTime ?? "") { newValue in
                 self?.morningStartTime = newValue
                 view.configure(value: newValue)
             }
@@ -2724,30 +2755,30 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
 
         appendEditableField(
             icon: "number",
-            title: "几节课",
+            title: L10n.tr("several classes"),
             description: nil,
             value: "\(morningCount) 节",
             placeholder: ""
         ) { [weak self] view in
-            self?.presentCountPicker(from: view, title: "上午几节课", currentCount: self?.morningCount ?? 0) { count in
+            self?.presentCountPicker(from: view, title: L10n.tr("How many classes are there in the morning?"), currentCount: self?.morningCount ?? 0) { count in
                 self?.morningCount = count
                 view.configure(value: "\(count) 节")
             }
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "下午")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("afternoon"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
         appendEditableField(
             icon: "sunset",
-            title: "第一节时间",
+            title: L10n.tr("First quarter time"),
             description: nil,
-            value: afternoonStartTime.isEmpty ? "未设置" : afternoonStartTime,
+            value: afternoonStartTime.isEmpty ? L10n.tr("not set") : afternoonStartTime,
             placeholder: ""
         ) { [weak self] view in
-            self?.presentTimePicker(from: view, title: "下午第一节开始时间", currentValue: self?.afternoonStartTime ?? "") { newValue in
+            self?.presentTimePicker(from: view, title: L10n.tr("Starting time of the first period in the afternoon"), currentValue: self?.afternoonStartTime ?? "") { newValue in
                 self?.afternoonStartTime = newValue
                 view.configure(value: newValue)
             }
@@ -2755,19 +2786,19 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
 
         appendEditableField(
             icon: "number",
-            title: "几节课",
+            title: L10n.tr("several classes"),
             description: nil,
             value: "\(afternoonCount) 节",
             placeholder: ""
         ) { [weak self] view in
-            self?.presentCountPicker(from: view, title: "下午几节课", currentCount: self?.afternoonCount ?? 0) { count in
+            self?.presentCountPicker(from: view, title: L10n.tr("Afternoon classes"), currentCount: self?.afternoonCount ?? 0) { count in
                 self?.afternoonCount = count
                 view.configure(value: "\(count) 节")
             }
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionFooterView().with(footer: "会按设定的时长和课间时间生成相邻节次。")
+            ConfigurableSectionFooterView().with(footer: L10n.tr("Adjacent sections will be generated according to the set duration and inter-class time."))
         )
         stackView.addArrangedSubviewWithMargin(UIView())
     }
@@ -2782,26 +2813,26 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
             onConfirm(generated)
             dismiss(animated: true)
         } catch {
-            presentMessage(title: "参数无效", message: error.localizedDescription)
+            presentMessage(title: L10n.tr("Invalid parameter"), message: error.localizedDescription)
         }
     }
 
     private func buildPeriods() throws -> [TimetablePeriodInput] {
         if morningCount == 0 && afternoonCount == 0 {
-            throw AppError.validation("上午和下午至少要填写一段课程。")
+            throw AppError.validation(L10n.tr("Fill out at least one session in the morning and afternoon."))
         }
 
         var generated: [TimetablePeriodInput] = []
         if morningCount > 0 {
             guard let start = parseTimeInput(morningStartTime) else {
-                throw AppError.validation("请设置上午第一节开始时间。")
+                throw AppError.validation(L10n.tr("Please set a start time for the first period in the morning."))
             }
             generated.append(contentsOf: makePeriods(start: start, count: morningCount, startIndex: generated.count + 1))
         }
 
         if afternoonCount > 0 {
             guard let start = parseTimeInput(afternoonStartTime) else {
-                throw AppError.validation("请设置下午第一节开始时间。")
+                throw AppError.validation(L10n.tr("Please set a start time for the first session in the afternoon."))
             }
             generated.append(contentsOf: makePeriods(start: start, count: afternoonCount, startIndex: generated.count + 1))
         }
@@ -2831,8 +2862,8 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
     private func presentDurationPicker(from view: UIView) {
         let selectedIndex = Self.durationOptions.firstIndex(of: durationMinutes) ?? 3
         let picker = SettingsAlertOptionPickerViewController(
-            title: "每节时长",
-            message: "选择每节课的时长。",
+            title: L10n.tr("Duration of each section"),
+            message: L10n.tr("Choose the length of each lesson."),
             options: Self.durationOptions.map { "\($0) 分钟" },
             selectedIndex: selectedIndex
         ) { [weak self] index in
@@ -2846,8 +2877,8 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
     private func presentBreakPicker(from view: UIView) {
         let selectedIndex = Self.breakOptions.firstIndex(of: breakMinutes) ?? 2
         let picker = SettingsAlertOptionPickerViewController(
-            title: "课间时间",
-            message: "选择每节之间的课间时间。",
+            title: L10n.tr("break time"),
+            message: L10n.tr("Choose a break between each session."),
             options: Self.breakOptions.map { "\($0) 分钟" },
             selectedIndex: selectedIndex
         ) { [weak self] index in
@@ -2861,7 +2892,7 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
     private func presentCountPicker(from view: UIView, title: String, currentCount: Int, onConfirm: @escaping (Int) -> Void) {
         let picker = SettingsAlertOptionPickerViewController(
             title: title,
-            message: "选择节数。",
+            message: L10n.tr("Select the number of sections."),
             options: Self.countOptions.map { "\($0) 节" },
             selectedIndex: min(currentCount, Self.countOptions.count - 1)
         ) { index in
@@ -2896,7 +2927,7 @@ private final class PeriodTemplateBatchAddController: SettingsReloadableStackScr
 
     private func presentMessage(title: String, message: String) {
         let alert = AlertViewController(title: title, message: message) { context in
-            context.addAction(title: "确定", attribute: .accent) {
+            context.addAction(title: L10n.tr("Sure"), attribute: .accent) {
                 context.dispose()
             }
         }
@@ -2937,12 +2968,12 @@ private final class PeriodTemplatePeriodDetailController: SettingsReloadableStac
 
         appendEditableField(
             icon: "clock.badge",
-            title: "开始时间",
+            title: L10n.tr("start time"),
             description: nil,
             value: period.startTime,
             placeholder: ""
         ) { [weak self] view in
-            self?.presentTimePicker(from: view, title: "编辑开始时间", message: "请选择开始时间。", currentValue: period.startTime) { newValue in
+            self?.presentTimePicker(from: view, title: L10n.tr("Edit start time"), message: L10n.tr("Please select a start time."), currentValue: period.startTime) { newValue in
                 self?.updateCurrentPeriod { $0.startTime = newValue }
                 view.configure(value: newValue)
             }
@@ -2950,19 +2981,19 @@ private final class PeriodTemplatePeriodDetailController: SettingsReloadableStac
 
         appendEditableField(
             icon: "clock.badge",
-            title: "结束时间",
+            title: L10n.tr("end time"),
             description: nil,
             value: period.endTime,
             placeholder: ""
         ) { [weak self] view in
-            self?.presentTimePicker(from: view, title: "编辑结束时间", message: "请选择结束时间。", currentValue: period.endTime) { newValue in
+            self?.presentTimePicker(from: view, title: L10n.tr("Edit end time"), message: L10n.tr("Please select an end time."), currentValue: period.endTime) { newValue in
                 self?.updateCurrentPeriod { $0.endTime = newValue }
                 view.configure(value: newValue)
             }
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "管理")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("manage"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
@@ -2970,8 +3001,8 @@ private final class PeriodTemplatePeriodDetailController: SettingsReloadableStac
             self?.deletePeriod()
         }
         deleteAction.configure(icon: UIImage(systemName: "trash"))
-        deleteAction.configure(title: "删除本节")
-        deleteAction.configure(description: "删除这个节次，并自动重排后续节次序号。")
+        deleteAction.configure(title: L10n.tr("Delete this section"))
+        deleteAction.configure(description: L10n.tr("Delete this section and automatically rearrange the serial numbers of subsequent sections."))
         deleteAction.titleLabel.textColor = .systemRed
         deleteAction.iconView.tintColor = .systemRed
         deleteAction.descriptionLabel.textColor = .systemRed

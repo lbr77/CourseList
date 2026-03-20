@@ -25,6 +25,7 @@ struct RootView: View {
     @EnvironmentObject private var container: AppContainer
     @StateObject private var viewModel = TimetableHomeViewModel()
     @State private var sheetRoute: SheetRoute?
+    @State private var languageRefreshToken = UUID()
 
     var body: some View {
         Group {
@@ -47,6 +48,10 @@ struct RootView: View {
             } else {
                 startupErrorView
             }
+        }
+        .id(languageRefreshToken)
+        .onReceive(NotificationCenter.default.publisher(for: .appLanguageDidChange)) { _ in
+            languageRefreshToken = UUID()
         }
         .task(id: container.repository == nil ? "booting" : "ready") {
             guard let repository = container.repository else { return }
@@ -142,9 +147,9 @@ struct RootView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 40))
                 .foregroundStyle(.orange)
-            Text("数据库初始化失败")
+            Text(L10n.tr("Database initialization failed"))
                 .font(.headline)
-            Text(container.bootstrapError ?? "应用无法继续启动，请检查存储权限或重启应用。")
+            Text(container.bootstrapError ?? L10n.tr("The app cannot continue to start. Please check the storage permissions or restart the app."))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -157,7 +162,7 @@ struct RootView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .progressViewStyle(.circular)
-            Text("正在初始化数据库…")
+            Text(L10n.tr("Initializing database..."))
                 .font(.headline)
             if let error = container.bootstrapError {
                 Text(error)

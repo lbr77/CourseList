@@ -12,11 +12,11 @@ func validateImportedTimetableDraft(_ draft: ImportedTimetableDraft) -> [String]
         errors.append(error)
     }
     if draft.courses.isEmpty {
-        errors.append("导入结果中没有课程。")
+        errors.append(L10n.tr("There are no courses in the import results."))
     }
     let indexes = draft.periods.map(\ .periodIndex)
     if indexes.enumerated().contains(where: { $0.offset + 1 != $0.element }) {
-        errors.append("导入的节次必须从 1 开始连续编号。")
+        errors.append(L10n.tr("Imported sections must be numbered consecutively starting from 1."))
     }
     for (index, course) in draft.courses.enumerated() {
         let input = SaveCourseInput(
@@ -40,7 +40,7 @@ func validateImportedTimetableDraft(_ draft: ImportedTimetableDraft) -> [String]
         )
         let periods = draft.periods.map { TimetablePeriod(id: "preview_\($0.periodIndex)", timetableId: "preview", periodIndex: $0.periodIndex, startTime: $0.startTime, endTime: $0.endTime) }
         if let error = validateSaveCourseInput(input, periods: periods) {
-            errors.append("第 \(index + 1) 门课程：\(error)")
+            errors.append(L10n.tr("Course %d: %@", index + 1, error))
         }
     }
     return errors

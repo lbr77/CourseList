@@ -15,7 +15,7 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
         action: #selector(closeTapped)
     )
     private lazy var primaryItem = UIBarButtonItem(
-        title: "识别",
+        title: L10n.tr("identify"),
         style: .done,
         target: self,
         action: #selector(primaryTapped)
@@ -267,7 +267,7 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
     private func rebuildStatus() {
         clearArrangedSubviews(in: statusStackView)
 
-        let headerTitle = viewModel.phase == .preview || viewModel.phase == .importing || viewModel.phase == .done ? "导入预览" : "状态"
+        let headerTitle = viewModel.phase == .preview || viewModel.phase == .importing || viewModel.phase == .done ? L10n.tr("Import preview") : L10n.tr("state")
         statusStackView.addArrangedSubviewWithMargin(
             ConfigurableSectionHeaderView().with(header: headerTitle)
         ) { $0.bottom /= 2 }
@@ -275,20 +275,20 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
 
         switch viewModel.phase {
         case .browsing:
-            appendFooter("请先登录学校系统并进入课表页面，然后点击右上角“识别”。")
+            appendFooter(L10n.tr("Please log in to the school system first and enter the class schedule page, then click \"Identify\" in the upper right corner."))
         case .capturing:
-            appendFooter("正在识别并抓取当前页面…")
+            appendFooter(L10n.tr("Recognizing and crawling the current page..."))
         case .unsupported:
-            appendFooter(viewModel.unsupportedReason ?? "当前页面不支持导入。", color: .systemOrange)
+            appendFooter(viewModel.unsupportedReason ?? L10n.tr("The current page does not support import."), color: .systemOrange)
         case .error:
-            appendFooter(viewModel.errorMessage ?? "导入失败。", color: .systemRed)
+            appendFooter(viewModel.errorMessage ?? L10n.tr("Import failed."), color: .systemRed)
         case .preview:
             appendPreview(draft: viewModel.draft, isImporting: false)
         case .importing:
             appendPreview(draft: viewModel.draft, isImporting: true)
         case .done:
             appendPreview(draft: viewModel.draft, isImporting: false)
-            appendFooter("导入完成。")
+            appendFooter(L10n.tr("The import is complete."))
         }
 
         statusStackView.addArrangedSubviewWithMargin(UIView())
@@ -296,28 +296,28 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
 
     private func appendPreview(draft: ImportedTimetableDraft?, isImporting: Bool) {
         guard let draft else {
-            appendFooter("尚未生成导入预览。")
+            appendFooter(L10n.tr("The import preview has not been generated yet."))
             return
         }
 
         let timetableView = ConfigurableInfoView()
         timetableView.configure(icon: UIImage(systemName: "calendar"))
-        timetableView.configure(title: "课表")
-        timetableView.configure(description: "导入后的课表名称")
+        timetableView.configure(title: L10n.tr("curriculum"))
+        timetableView.configure(description: L10n.tr("Imported class schedule name"))
         timetableView.configure(value: draft.name)
         statusStackView.addArrangedSubviewWithMargin(timetableView)
         statusStackView.addArrangedSubview(SeparatorView())
 
         let statsView = ConfigurableInfoView()
         statsView.configure(icon: UIImage(systemName: "square.stack.3d.up"))
-        statsView.configure(title: "导入统计")
-        statsView.configure(description: "开学日期：\(draft.startDate) · 周数：\(draft.weeksCount)")
-        statsView.configure(value: "节次 \(draft.periods.count) · 课程 \(draft.courses.count)")
+        statsView.configure(title: L10n.tr("Import statistics"))
+        statsView.configure(description: L10n.tr("Start date: %@ · Week number: %d", draft.startDate, draft.weeksCount))
+        statsView.configure(value: L10n.tr("Section %d · Course %d", draft.periods.count, draft.courses.count))
         statusStackView.addArrangedSubviewWithMargin(statsView)
         statusStackView.addArrangedSubview(SeparatorView())
 
         if isImporting {
-            appendFooter("正在导入课表…")
+            appendFooter(L10n.tr("Importing class schedule..."))
         }
 
         for error in viewModel.draftErrors {
@@ -332,7 +332,7 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
         }
 
         if viewModel.draftErrors.isEmpty {
-            appendFooter("确认后将导入到本地课表。")
+            appendFooter(L10n.tr("After confirmation, it will be imported into the local class schedule."))
         }
     }
 
@@ -355,24 +355,24 @@ final class ImportBrowserController: UIViewController, WKNavigationDelegate, WKU
         let title: String
         let enabled: Bool
         if isAddressEditing {
-            title = "前往"
+            title = L10n.tr("Go to")
             enabled = true
         } else {
             switch viewModel.phase {
             case .preview:
-                title = "导入"
+                title = L10n.tr("import")
                 enabled = viewModel.draftErrors.isEmpty
             case .capturing:
-                title = "识别中"
+                title = L10n.tr("Recognizing")
                 enabled = false
             case .importing:
-                title = "导入中"
+                title = L10n.tr("Importing")
                 enabled = false
             case .done:
-                title = "完成"
+                title = L10n.tr("Finish")
                 enabled = true
             default:
-                title = "识别"
+                title = L10n.tr("identify")
                 enabled = true
             }
         }

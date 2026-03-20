@@ -1,0 +1,784 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ About to start</key>
+	<string>%@ About to start</string>
+	<key>%@ · %@ School starts · %d weeks</key>
+	<string>%@ · %@ School starts · %d weeks</string>
+	<key>%@ · %@ · Total %d times</key>
+	<string>%@ · %@ · Total %d times</string>
+	<key>%@ · Total %d sections</key>
+	<string>%@ · Total %d sections</string>
+	<key>%d items</key>
+	<string>%d items</string>
+	<key>%d periods</key>
+	<string>%d periods</string>
+	<key>%d-%d weeks</key>
+	<string>%d-%d weeks</string>
+	<key>1 week</key>
+	<string>1 week</string>
+	<key>16 weeks</key>
+	<string>16 weeks</string>
+	<key>Academic Affairs Import</key>
+	<string>Academic Affairs Import</string>
+	<key>Add in batches</key>
+	<string>Add in batches</string>
+	<key>Add section</key>
+	<string>Add section</string>
+	<key>Add sections in batches</key>
+	<string>Add sections in batches</string>
+	<key>Add single section</key>
+	<string>Add single section</string>
+	<key>Adjacent sections will be generated according to the set duration and inter-class time.</key>
+	<string>Adjacent sections will be generated according to the set duration and inter-class time.</string>
+	<key>Advanced Mathematics</key>
+	<string>Advanced Mathematics</string>
+	<key>After confirmation, it will be imported into the local class schedule.</key>
+	<string>After confirmation, it will be imported into the local class schedule.</string>
+	<key>After importing, a new class schedule will be created.</key>
+	<string>After importing, a new class schedule will be created.</string>
+	<key>After selecting a template, the section settings of the current class schedule will be overwritten with the template sections.</key>
+	<string>After selecting a template, the section settings of the current class schedule will be overwritten with the template sections.</string>
+	<key>Afternoon classes</key>
+	<string>Afternoon classes</string>
+	<key>Appearance settings</key>
+	<string>Appearance settings</string>
+	<key>Are you sure you want to delete this class schedule?</key>
+	<string>Are you sure you want to delete this class schedule?</string>
+	<key>Are you sure you want to delete this section template?</key>
+	<string>Are you sure you want to delete this section template?</string>
+	<key>Article %d</key>
+	<string>Article %d</string>
+	<key>Authorized to access the system calendar.</key>
+	<string>Authorized to access the system calendar.</string>
+	<key>Authorized to read and write the system calendar.</key>
+	<string>Authorized to read and write the system calendar.</string>
+	<key>Authorized to read the system calendar.</key>
+	<string>Authorized to read the system calendar.</string>
+	<key>Build number</key>
+	<string>Build number</string>
+	<key>Calendar access</key>
+	<string>Calendar access</string>
+	<key>Calendar events</key>
+	<string>Calendar events</string>
+	<key>Calendar read permission</key>
+	<string>Calendar read permission</string>
+	<key>Calendar reading needs to be allowed before system calendar events can be imported.</key>
+	<string>Calendar reading needs to be allowed before system calendar events can be imported.</string>
+	<key>Cancel</key>
+	<string>Cancel</string>
+	<key>Choose a break between each session.</key>
+	<string>Choose a break between each session.</string>
+	<key>Choose a reminder time before the course starts.</key>
+	<string>Choose a reminder time before the course starts.</string>
+	<key>Choose school</key>
+	<string>Choose school</string>
+	<key>Choose the length of each lesson.</key>
+	<string>Choose the length of each lesson.</string>
+	<key>Class schedule information is not available</key>
+	<string>Class schedule information is not available</string>
+	<key>Class schedule name</key>
+	<string>Class schedule name</string>
+	<key>Class schedule: %@</key>
+	<string>Class schedule: %@</string>
+	<key>Class time</key>
+	<string>Class time</string>
+	<key>Click + Add Section in the upper right corner.</key>
+	<string>Click + Add Section in the upper right corner.</string>
+	<key>Click Request calendar access.</key>
+	<string>Click Request calendar access.</string>
+	<key>Click to apply for permission to read the calendar.</key>
+	<string>Click to apply for permission to read the calendar.</string>
+	<key>Click to edit section</key>
+	<string>Click to edit section</string>
+	<key>Confirm import</key>
+	<string>Confirm import</string>
+	<key>Continue to save</key>
+	<string>Continue to save</string>
+	<key>Corresponding class schedule not found: %@</key>
+	<string>Corresponding class schedule not found: %@</string>
+	<key>Course %d: %@</key>
+	<string>Course %d: %@</string>
+	<key>Course name</key>
+	<string>Course name</string>
+	<key>Course name cannot be empty.</key>
+	<string>Course name cannot be empty.</string>
+	<key>Course preview</key>
+	<string>Course preview</string>
+	<key>Course reminder</key>
+	<string>Course reminder</string>
+	<key>Courses can be managed after saving the schedule</key>
+	<string>Courses can be managed after saving the schedule</string>
+	<key>Create a new class schedule</key>
+	<string>Create a new class schedule</string>
+	<key>Create new course</key>
+	<string>Create new course</string>
+	<key>Create new template</key>
+	<string>Create new template</string>
+	<key>Current class schedule</key>
+	<string>Current class schedule</string>
+	<key>Current default template</key>
+	<string>Current default template</string>
+	<key>Current period</key>
+	<string>Current period</string>
+	<key>Curriculum</key>
+	<string>Curriculum</string>
+	<key>Custom sections</key>
+	<string>Custom sections</string>
+	<key>Database initialization failed</key>
+	<string>Database initialization failed</string>
+	<key>Database initialization failed: %@</key>
+	<string>Database initialization failed: %@</string>
+	<key>Date anomaly</key>
+	<string>Date anomaly</string>
+	<key>Day of the week must be between 1 and 7.</key>
+	<string>Day of the week must be between 1 and 7.</string>
+	<key>Default template · Click to edit</key>
+	<string>Default template · Click to edit</string>
+	<key>Delete class schedule</key>
+	<string>Delete class schedule</string>
+	<key>Delete course</key>
+	<string>Delete course</string>
+	<key>Delete template</key>
+	<string>Delete template</string>
+	<key>Delete this article</key>
+	<string>Delete this article</string>
+	<key>Delete this class time.</key>
+	<string>Delete this class time.</string>
+	<key>Delete this section</key>
+	<string>Delete this section</string>
+	<key>Delete this section and automatically rearrange the serial numbers of subsequent sections.</key>
+	<string>Delete this section and automatically rearrange the serial numbers of subsequent sections.</string>
+	<key>Delete this section template.</key>
+	<string>Delete this section template.</string>
+	<key>Duration of each section</key>
+	<string>Duration of each section</string>
+	<key>Edit Teacher</key>
+	<string>Edit Teacher</string>
+	<key>Edit class name</key>
+	<string>Edit class name</string>
+	<key>Edit class schedule</key>
+	<string>Edit class schedule</string>
+	<key>Edit course</key>
+	<string>Edit course</string>
+	<key>Edit course name</key>
+	<string>Edit course name</string>
+	<key>Edit end section</key>
+	<string>Edit end section</string>
+	<key>Edit end time</key>
+	<string>Edit end time</string>
+	<key>Edit end week</key>
+	<string>Edit end week</string>
+	<key>Edit location</key>
+	<string>Edit location</string>
+	<key>Edit odd and fortnightly</key>
+	<string>Edit odd and fortnightly</string>
+	<key>Edit start date</key>
+	<string>Edit start date</string>
+	<key>Edit start section</key>
+	<string>Edit start section</string>
+	<key>Edit start time</key>
+	<string>Edit start time</string>
+	<key>Edit template</key>
+	<string>Edit template</string>
+	<key>Edit template name</key>
+	<string>Edit template name</string>
+	<key>Edit this location</key>
+	<string>Edit this location</string>
+	<key>Editing start week</key>
+	<string>Editing start week</string>
+	<key>Editor's Notes</key>
+	<string>Editor's Notes</string>
+	<key>Editor's Week</key>
+	<string>Editor's Week</string>
+	<key>End date cannot be earlier than start date.</key>
+	<string>End date cannot be earlier than start date.</string>
+	<key>English (US)</key>
+	<string>English (US)</string>
+	<key>Enter address</key>
+	<string>Enter address</string>
+	<key>Export completed</key>
+	<string>Export completed</string>
+	<key>Export failed</key>
+	<string>Export failed</string>
+	<key>Export rules: Events created by CourseList in the same range of the target calendar of the current class schedule will be deleted first, and then the latest courses will be written.</key>
+	<string>Export rules: Events created by CourseList in the same range of the target calendar of the current class schedule will be deleted first, and then the latest courses will be written.</string>
+	<key>Export settings</key>
+	<string>Export settings</string>
+	<key>Export to calendar</key>
+	<string>Export to calendar</string>
+	<key>Exporting…</key>
+	<string>Exporting…</string>
+	<key>Failed to read the class schedule. Click the entry above to try again.</key>
+	<string>Failed to read the class schedule. Click the entry above to try again.</string>
+	<key>Fill out at least one session in the morning and afternoon.</key>
+	<string>Fill out at least one session in the morning and afternoon.</string>
+	<key>Finish</key>
+	<string>Finish</string>
+	<key>First quarter time</key>
+	<string>First quarter time</string>
+	<key>Fortnightly</key>
+	<string>Fortnightly</string>
+	<key>Friday</key>
+	<string>Friday</string>
+	<key>Go to</key>
+	<string>Go to</string>
+	<key>How long before the course starts</key>
+	<string>How long before the course starts</string>
+	<key>How many classes are there in the morning?</key>
+	<string>How many classes are there in the morning?</string>
+	<key>Identify page</key>
+	<string>Identify page</string>
+	<key>If there is no class schedule, click + in the upper right corner to add one~</key>
+	<string>If there is no class schedule, click + in the upper right corner to add one~</string>
+	<key>Import calendar</key>
+	<string>Import calendar</string>
+	<key>Import completed</key>
+	<string>Import completed</string>
+	<key>Import failed</key>
+	<string>Import failed</string>
+	<key>Import failed.</key>
+	<string>Import failed.</string>
+	<key>Import failed: No course data available.</key>
+	<string>Import failed: No course data available.</string>
+	<key>Import failed: Unable to generate section.</key>
+	<string>Import failed: Unable to generate section.</string>
+	<key>Import preview</key>
+	<string>Import preview</string>
+	<key>Import rules: All-day events and cross-day events will be ignored; remaining events will be automatically converted by week and week.</key>
+	<string>Import rules: All-day events and cross-day events will be ignored; remaining events will be automatically converted by week and week.</string>
+	<key>Import settings</key>
+	<string>Import settings</string>
+	<key>Import statistics</key>
+	<string>Import statistics</string>
+	<key>Imported class schedule name</key>
+	<string>Imported class schedule name</string>
+	<key>Imported sections must be numbered consecutively starting from 1.</key>
+	<string>Imported sections must be numbered consecutively starting from 1.</string>
+	<key>Importing</key>
+	<string>Importing</string>
+	<key>Importing class schedule...</key>
+	<string>Importing class schedule...</string>
+	<key>Importing…</key>
+	<string>Importing…</string>
+	<key>Initialization failed</key>
+	<string>Initialization failed</string>
+	<key>Initializing database...</key>
+	<string>Initializing database...</string>
+	<key>Invalid date range</key>
+	<string>Invalid date range</string>
+	<key>Invalid export date range.</key>
+	<string>Invalid export date range.</string>
+	<key>Invalid import date range.</key>
+	<string>Invalid import date range.</string>
+	<key>Invalid parameter</key>
+	<string>Invalid parameter</string>
+	<key>Invalid quantity</key>
+	<string>Invalid quantity</string>
+	<key>Invalid week range.</key>
+	<string>Invalid week range.</string>
+	<key>Jilin University (vpn)</key>
+	<string>Jilin University (vpn)</string>
+	<key>Junior year</key>
+	<string>Junior year</string>
+	<key>Language</key>
+	<string>Language</string>
+	<key>Li Hua</key>
+	<string>Li Hua</string>
+	<key>Loading courses…</key>
+	<string>Loading courses…</string>
+	<key>Loading…</key>
+	<string>Loading…</string>
+	<key>Manage class schedule</key>
+	<string>Manage class schedule</string>
+	<key>Manage courses in this schedule</key>
+	<string>Manage courses in this schedule</string>
+	<key>Manage default sections and templates</key>
+	<string>Manage default sections and templates</string>
+	<key>Modified courses will take effect immediately on the course schedule display.</key>
+	<string>Modified courses will take effect immediately on the course schedule display.</string>
+	<key>Modify course information and class time</key>
+	<string>Modify course information and class time</string>
+	<key>No calendar selected</key>
+	<string>No calendar selected</string>
+	<key>No class schedule selected</key>
+	<string>No class schedule selected</string>
+	<key>No classroom set up</key>
+	<string>No classroom set up</string>
+	<key>No location set</key>
+	<string>No location set</string>
+	<key>No matching school found</key>
+	<string>No matching school found</string>
+	<key>No teacher set</key>
+	<string>No teacher set</string>
+	<key>Not started</key>
+	<string>Not started</string>
+	<key>Notifications are available; calendar permissions are available in Tools -&gt; Export to Calendar.</key>
+	<string>Notifications are available; calendar permissions are available in Tools -&gt; Export to Calendar.</string>
+	<key>Notifications have been denied and can be turned back on in system settings; calendar permissions can be managed separately.</key>
+	<string>Notifications have been denied and can be turned back on in system settings; calendar permissions can be managed separately.</string>
+	<key>Notifications, calendar and other system permissions</key>
+	<string>Notifications, calendar and other system permissions</string>
+	<key>Odd and even weeks</key>
+	<string>Odd and even weeks</string>
+	<key>Only courses on and after this date will be exported.</key>
+	<string>Only courses on and after this date will be exported.</string>
+	<key>Only courses on and before this date will be exported.</key>
+	<string>Only courses on and before this date will be exported.</string>
+	<key>Only events on and after this date will be imported.</key>
+	<string>Only events on and after this date will be imported.</string>
+	<key>Only events on and before this date will be imported.</key>
+	<string>Only events on and before this date will be imported.</string>
+	<key>Operation failed</key>
+	<string>Operation failed</string>
+	<key>Page scraping returns empty.</key>
+	<string>Page scraping returns empty.</string>
+	<key>Period %d</key>
+	<string>Period %d</string>
+	<key>Permanently delete this course and all class times.</key>
+	<string>Permanently delete this course and all class times.</string>
+	<key>Permanently delete this schedule and its course data.</key>
+	<string>Permanently delete this schedule and its course data.</string>
+	<key>Permission management</key>
+	<string>Permission management</string>
+	<key>Permission status is unknown.</key>
+	<string>Permission status is unknown.</string>
+	<key>Place</key>
+	<string>Place</string>
+	<key>Please add at least one class time.</key>
+	<string>Please add at least one class time.</string>
+	<key>Please add at least one section.</key>
+	<string>Please add at least one section.</string>
+	<key>Please enter a template name.</key>
+	<string>Please enter a template name.</string>
+	<key>Please enter an integer greater than 0.</key>
+	<string>Please enter an integer greater than 0.</string>
+	<key>Please enter the number of sections to add consecutively.</key>
+	<string>Please enter the number of sections to add consecutively.</string>
+	<key>Please log in to the school system first and enter the class schedule page, then click \"Identify Page\".</key>
+	<string>Please log in to the school system first and enter the class schedule page, then click \"Identify Page\".</string>
+	<key>Please log in to the school system first and enter the class schedule page, then click \"Identify\" in the upper right corner.</key>
+	<string>Please log in to the school system first and enter the class schedule page, then click \"Identify\" in the upper right corner.</string>
+	<key>Please return to the class schedule page to refresh and try again.</key>
+	<string>Please return to the class schedule page to refresh and try again.</string>
+	<key>Please save the class schedule first and then manage the course.</key>
+	<string>Please save the class schedule first and then manage the course.</string>
+	<key>Please select</key>
+	<string>Please select</string>
+	<key>Please select a destination calendar first.</key>
+	<string>Please select a destination calendar first.</string>
+	<key>Please select a start date.</key>
+	<string>Please select a start date.</string>
+	<key>Please select a start time.</key>
+	<string>Please select a start time.</string>
+	<key>Please select a system calendar to write to.</key>
+	<string>Please select a system calendar to write to.</string>
+	<key>Please select an end time.</key>
+	<string>Please select an end time.</string>
+	<key>Please select at least one calendar.</key>
+	<string>Please select at least one calendar.</string>
+	<key>Please select how to add.</key>
+	<string>Please select how to add.</string>
+	<key>Please select your class schedule first.</key>
+	<string>Please select your class schedule first.</string>
+	<key>Please set a start time for the first period in the morning.</key>
+	<string>Please set a start time for the first period in the morning.</string>
+	<key>Please set a start time for the first session in the afternoon.</key>
+	<string>Please set a start time for the first session in the afternoon.</string>
+	<key>Read failed</key>
+	<string>Read failed</string>
+	<key>Reading class schedule data...</key>
+	<string>Reading class schedule data...</string>
+	<key>Reading class schedule...</key>
+	<string>Reading class schedule...</string>
+	<key>Reading course data...</key>
+	<string>Reading course data...</string>
+	<key>Reading course…</key>
+	<string>Reading course…</string>
+	<key>Reading section template...</key>
+	<string>Reading section template...</string>
+	<key>Reading template…</key>
+	<string>Reading template…</string>
+	<key>Recognizing</key>
+	<string>Recognizing</string>
+	<key>Recognizing and crawling the current page...</key>
+	<string>Recognizing and crawling the current page...</string>
+	<key>Refresh calendar list</key>
+	<string>Refresh calendar list</string>
+	<key>Refresh data</key>
+	<string>Refresh data</string>
+	<key>Refresh failed: %@</key>
+	<string>Refresh failed: %@</string>
+	<key>Refreshing class schedule data...</key>
+	<string>Refreshing class schedule data...</string>
+	<key>Refreshing course data...</key>
+	<string>Refreshing course data...</string>
+	<key>Refreshing course list...</key>
+	<string>Refreshing course list...</string>
+	<key>Refreshing section template...</key>
+	<string>Refreshing section template...</string>
+	<key>Refreshing template list...</key>
+	<string>Refreshing template list...</string>
+	<key>Rejected</key>
+	<string>Rejected</string>
+	<key>Rejected, click to go to system settings to turn it on.</key>
+	<string>Rejected, click to go to system settings to turn it on.</string>
+	<key>Remark</key>
+	<string>Remark</string>
+	<key>Saturday</key>
+	<string>Saturday</string>
+	<key>School start date</key>
+	<string>School start date</string>
+	<key>Search schools</key>
+	<string>Search schools</string>
+	<key>Section %d</key>
+	<string>Section %d</string>
+	<key>Section %d · Course %d</key>
+	<string>Section %d · Course %d</string>
+	<key>Section %d-%d</key>
+	<string>Section %d-%d</string>
+	<key>Section 1</key>
+	<string>Section 1</string>
+	<key>Section 2</key>
+	<string>Section 2</string>
+	<key>Section numbers must start from 1 and increase continuously.</key>
+	<string>Section numbers must start from 1 and increase continuously.</string>
+	<key>Section settings</key>
+	<string>Section settings</string>
+	<key>Section template</key>
+	<string>Section template</string>
+	<key>Section times must be in HH:mm format.</key>
+	<string>Section times must be in HH:mm format.</string>
+	<key>Section: %d · Course: %d</key>
+	<string>Section: %d · Course: %d</string>
+	<key>Select class schedule</key>
+	<string>Select class schedule</string>
+	<key>Select target calendar</key>
+	<string>Select target calendar</string>
+	<key>Select the class schedule to export to the calendar.</key>
+	<string>Select the class schedule to export to the calendar.</string>
+	<key>Select the effective week type for this time.</key>
+	<string>Select the effective week type for this time.</string>
+	<key>Select the export date.</key>
+	<string>Select the export date.</string>
+	<key>Select the import date.</key>
+	<string>Select the import date.</string>
+	<key>Select the number of sections.</key>
+	<string>Select the number of sections.</string>
+	<key>Select the target calendar from the system calendar.</key>
+	<string>Select the target calendar from the system calendar.</string>
+	<key>Select the time from which the class schedule will be displayed.</key>
+	<string>Select the time from which the class schedule will be displayed.</string>
+	<key>Select the week this time falls on.</key>
+	<string>Select the week this time falls on.</string>
+	<key>Select until what time the class schedule is displayed.</key>
+	<string>Select until what time the class schedule is displayed.</string>
+	<key>Send system notification before class</key>
+	<string>Send system notification before class</string>
+	<key>Set as default template</key>
+	<string>Set as default template</string>
+	<key>Set the week view to start on Sunday or Monday</key>
+	<string>Set the week view to start on Sunday or Monday</string>
+	<key>Shaw Teaching Building</key>
+	<string>Shaw Teaching Building</string>
+	<key>Show end time</key>
+	<string>Show end time</string>
+	<key>Show start time</key>
+	<string>Show start time</string>
+	<key>Simplified Chinese</key>
+	<string>Simplified Chinese</string>
+	<key>Source Calendar</key>
+	<string>Source Calendar</string>
+	<key>Source schedule</key>
+	<string>Source schedule</string>
+	<key>Start date must be in YYYY-MM-DD format.</key>
+	<string>Start date must be in YYYY-MM-DD format.</string>
+	<key>Start date: %@ · Week number: %d</key>
+	<string>Start date: %@ · Week number: %d</string>
+	<key>Start export</key>
+	<string>Start export</string>
+	<key>Start importing</key>
+	<string>Start importing</string>
+	<key>Start time of the first session in the morning</key>
+	<string>Start time of the first session in the morning</string>
+	<key>Starting time of the first period in the afternoon</key>
+	<string>Starting time of the first period in the afternoon</string>
+	<key>Starts on Sunday</key>
+	<string>Starts on Sunday</string>
+	<key>Sunday</key>
+	<string>Sunday</string>
+	<key>Sure</key>
+	<string>Sure</string>
+	<key>Swipe up or down to select a section.</key>
+	<string>Swipe up or down to select a section.</string>
+	<key>Swipe up or down to select a week.</key>
+	<string>Swipe up or down to select a week.</string>
+	<key>Swipe up or down to select the total number of weeks.</key>
+	<string>Swipe up or down to select the total number of weeks.</string>
+	<key>Switch app display language</key>
+	<string>Switch app display language</string>
+	<key>System calendar</key>
+	<string>System calendar</string>
+	<key>System limit and cannot be modified.</key>
+	<string>System limit and cannot be modified.</string>
+	<key>System permissions such as notifications and calendars can be managed here.</key>
+	<string>System permissions such as notifications and calendars can be managed here.</string>
+	<key>Tap the entry above to try again.</key>
+	<string>Tap the entry above to try again.</string>
+	<key>Template does not exist.</key>
+	<string>Template does not exist.</string>
+	<key>Template name</key>
+	<string>Template name</string>
+	<key>Template name cannot be empty.</key>
+	<string>Template name cannot be empty.</string>
+	<key>The app cannot continue to start. Please check the storage permissions or restart the app.</key>
+	<string>The app cannot continue to start. Please check the storage permissions or restart the app.</string>
+	<key>The class schedule name cannot be empty.</key>
+	<string>The class schedule name cannot be empty.</string>
+	<key>The class schedule was not found</key>
+	<string>The class schedule was not found</string>
+	<key>The class schedule will be stretched and displayed according to this range, which is suitable for improving readability when classes are concentrated during the day.</key>
+	<string>The class schedule will be stretched and displayed according to this range, which is suitable for improving readability when classes are concentrated during the day.</string>
+	<key>The course does not exist and may have been deleted.</key>
+	<string>The course does not exist and may have been deleted.</string>
+	<key>The current class schedule does not have sections configured yet. Please add sections to the class schedule before saving the course.</key>
+	<string>The current class schedule does not have sections configured yet. Please add sections to the class schedule before saving the course.</string>
+	<key>The current page does not support automatic import.</key>
+	<string>The current page does not support automatic import.</string>
+	<key>The current page does not support import.</key>
+	<string>The current page does not support import.</string>
+	<key>The default template will be used for the initial sections of the new class schedule; existing class schedules will not be automatically changed.</key>
+	<string>The default template will be used for the initial sections of the new class schedule; existing class schedules will not be automatically changed.</string>
+	<key>The display name of the class schedule.</key>
+	<string>The display name of the class schedule.</string>
+	<key>The display name of the course.</key>
+	<string>The display name of the course.</string>
+	<key>The export will not modify the class schedule data, it will only be written to the system calendar.</key>
+	<string>The export will not modify the class schedule data, it will only be written to the system calendar.</string>
+	<key>The hour is displayed at the bottom of the schedule</key>
+	<string>The hour is displayed at the bottom of the schedule</string>
+	<key>The import is complete.</key>
+	<string>The import is complete.</string>
+	<key>The import preview has not been generated yet.</key>
+	<string>The import preview has not been generated yet.</string>
+	<key>The notification is undecided; system authorization pop-up window will be triggered when course reminder is enabled.</key>
+	<string>The notification is undecided; system authorization pop-up window will be triggered when course reminder is enabled.</string>
+	<key>The number of course sections exceeds the timetable configuration.</key>
+	<string>The number of course sections exceeds the timetable configuration.</string>
+	<key>The schedule start date is invalid.</key>
+	<string>The schedule start date is invalid.</string>
+	<key>The section end time must be later than the start time.</key>
+	<string>The section end time must be later than the start time.</string>
+	<key>The section range is invalid.</key>
+	<string>The section range is invalid.</string>
+	<key>The starting hour shown at the top of the schedule</key>
+	<string>The starting hour shown at the top of the schedule</string>
+	<key>The system calendar can be refreshed manually when there are changes.</key>
+	<string>The system calendar can be refreshed manually when there are changes.</string>
+	<key>The teacher wants to sign in by hand. Go quickly.</key>
+	<string>The teacher wants to sign in by hand. Go quickly.</string>
+	<key>The week number must be at least 1.</key>
+	<string>The week number must be at least 1.</string>
+	<key>Themes, colors and display</key>
+	<string>Themes, colors and display</string>
+	<key>There are currently no system calendars available for writing.</key>
+	<string>There are currently no system calendars available for writing.</string>
+	<key>There are no calendar events that can be imported within the selection range (all-day events and cross-day events will be ignored).</key>
+	<string>There are no calendar events that can be imported within the selection range (all-day events and cross-day events will be ignored).</string>
+	<key>There are no courses in the import results.</key>
+	<string>There are no courses in the import results.</string>
+	<key>There are no exportable courses in the selection.</key>
+	<string>There are no exportable courses in the selection.</string>
+	<key>There is currently no class schedule. Please create a new class schedule or import a class schedule first.</key>
+	<string>There is currently no class schedule. Please create a new class schedule or import a class schedule first.</string>
+	<key>There is currently no corresponding section time.</key>
+	<string>There is currently no corresponding section time.</string>
+	<key>There is currently no section, please add a section first.</key>
+	<string>There is currently no section, please add a section first.</string>
+	<key>There is currently no system calendar to read.</key>
+	<string>There is currently no system calendar to read.</string>
+	<key>There is no class schedule yet, click + in the upper right corner to create a new one or import it.</key>
+	<string>There is no class schedule yet, click + in the upper right corner to create a new one or import it.</string>
+	<key>There is no class time yet, click \"Add\" on the upper right to start creating.</key>
+	<string>There is no class time yet, click \"Add\" on the upper right to start creating.</string>
+	<key>There is no course yet, click \"Add Course\" on the upper right to start creating it.</key>
+	<string>There is no course yet, click \"Add Course\" on the upper right to start creating it.</string>
+	<key>There is no section configuration in the current class schedule, so use the default value first.</key>
+	<string>There is no section configuration in the current class schedule, so use the default value first.</string>
+	<key>There is no section template yet, click + New in the upper right corner.</key>
+	<string>There is no section template yet, click + New in the upper right corner.</string>
+	<key>There is no section template yet, please go to the settings page to create a template first.</key>
+	<string>There is no section template yet, please go to the settings page to create a template first.</string>
+	<key>This set of sections is used by default when creating a new class schedule.</key>
+	<string>This set of sections is used by default when creating a new class schedule.</string>
+	<key>This time location</key>
+	<string>This time location</string>
+	<key>Thursday</key>
+	<string>Thursday</string>
+	<key>Time conflict detection is performed when saving.</key>
+	<string>Time conflict detection is performed when saving.</string>
+	<key>Time conflict found</key>
+	<string>Time conflict found</string>
+	<key>Timetable management</key>
+	<string>Timetable management</string>
+	<key>Total number of weeks edited</key>
+	<string>Total number of weeks edited</string>
+	<key>Tuesday</key>
+	<string>Tuesday</string>
+	<key>Unable to export</key>
+	<string>Unable to export</string>
+	<key>Unable to import</key>
+	<string>Unable to import</string>
+	<key>Unable to locate app document directory.</key>
+	<string>Unable to locate app document directory.</string>
+	<key>Unable to open SQLite database.</key>
+	<string>Unable to open SQLite database.</string>
+	<key>Unable to parse calendar event date.</key>
+	<string>Unable to parse calendar event date.</string>
+	<key>Unable to read the current page content.</key>
+	<string>Unable to read the current page content.</string>
+	<key>Unauthorized</key>
+	<string>Unauthorized</string>
+	<key>Unknown version</key>
+	<string>Unknown version</string>
+	<key>Useful functions such as export to calendar</key>
+	<string>Useful functions such as export to calendar</string>
+	<key>Version</key>
+	<string>Version</string>
+	<key>Web login</key>
+	<string>Web login</string>
+	<key>WebView is not ready yet.</key>
+	<string>WebView is not ready yet.</string>
+	<key>Wednesday</key>
+	<string>Wednesday</string>
+	<key>Week</key>
+	<string>Week</string>
+	<key>Week %d</key>
+	<string>Week %d</string>
+	<key>Week out of range: %d, valid range is 1-%d</key>
+	<string>Week out of range: %d, valid range is 1-%d</string>
+	<key>Write permission only, click to upgrade to read and write.</key>
+	<string>Write permission only, click to upgrade to read and write.</string>
+	<key>Write permission only, click to upgrade to read.</key>
+	<string>Write permission only, click to upgrade to read.</string>
+	<key>Write permission only.</key>
+	<string>Write permission only.</string>
+	<key>Write the class schedule into the system calendar.</key>
+	<string>Write the class schedule into the system calendar.</string>
+	<key>You can manually refresh the class schedule or system calendar when there are changes.</key>
+	<string>You can manually refresh the class schedule or system calendar when there are changes.</string>
+	<key>You need to allow access to the calendar before you can export the class schedule to the system calendar.</key>
+	<string>You need to allow access to the calendar before you can export the class schedule to the system calendar.</string>
+	<key>about</key>
+	<string>about</string>
+	<key>advance notice</key>
+	<string>advance notice</string>
+	<key>afternoon</key>
+	<string>afternoon</string>
+	<key>all</key>
+	<string>all</string>
+	<key>allowed</key>
+	<string>allowed</string>
+	<key>application</key>
+	<string>application</string>
+	<key>back to this week</key>
+	<string>back to this week</string>
+	<key>break time</key>
+	<string>break time</string>
+	<key>closure</key>
+	<string>closure</string>
+	<key>course</key>
+	<string>course</string>
+	<key>currently in use</key>
+	<string>currently in use</string>
+	<key>curriculum</key>
+	<string>curriculum</string>
+	<key>database</key>
+	<string>database</string>
+	<key>default</key>
+	<string>default</string>
+	<key>delete</key>
+	<string>delete</string>
+	<key>end date</key>
+	<string>end date</string>
+	<key>end section</key>
+	<string>end section</string>
+	<key>end time</key>
+	<string>end time</string>
+	<key>end week</key>
+	<string>end week</string>
+	<key>ended</key>
+	<string>ended</string>
+	<key>identify</key>
+	<string>identify</string>
+	<key>import</key>
+	<string>import</string>
+	<key>in progress</key>
+	<string>in progress</string>
+	<key>knew</key>
+	<string>knew</string>
+	<key>manage</key>
+	<string>manage</string>
+	<key>mistake</key>
+	<string>mistake</string>
+	<key>morning</key>
+	<string>morning</string>
+	<key>name</key>
+	<string>name</string>
+	<key>none</key>
+	<string>none</string>
+	<key>normal</key>
+	<string>normal</string>
+	<key>not set</key>
+	<string>not set</string>
+	<key>on Monday</key>
+	<string>on Monday</string>
+	<key>restricted</key>
+	<string>restricted</string>
+	<key>save</key>
+	<string>save</string>
+	<key>section</key>
+	<string>section</string>
+	<key>set up</key>
+	<string>set up</string>
+	<key>several classes</key>
+	<string>several classes</string>
+	<key>single week</key>
+	<string>single week</string>
+	<key>start date</key>
+	<string>start date</string>
+	<key>start day of week</key>
+	<string>start day of week</string>
+	<key>start section</key>
+	<string>start section</string>
+	<key>start time</key>
+	<string>start time</string>
+	<key>start week</key>
+	<string>start week</string>
+	<key>starts on monday</key>
+	<string>starts on monday</string>
+	<key>state</key>
+	<string>state</string>
+	<key>target calendar</key>
+	<string>target calendar</string>
+	<key>teacher</key>
+	<string>teacher</string>
+	<key>template</key>
+	<string>template</string>
+	<key>time</key>
+	<string>time</string>
+	<key>tool</key>
+	<string>tool</string>
+	<key>total number of weeks</key>
+	<string>total number of weeks</string>
+	<key>unknown</key>
+	<string>unknown</string>
+	<key>unknown build</key>
+	<string>unknown build</string>
+	<key>write only</key>
+	<string>write only</string>
+	<key>write to</key>
+	<string>write to</string>
+</dict>
+</plist>

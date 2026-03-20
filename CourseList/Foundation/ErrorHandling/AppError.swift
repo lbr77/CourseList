@@ -12,7 +12,7 @@ enum AppError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .validation(let message), .database(let message), .importUnsupported(let message), .importCapture(let message), .importNormalize(let message), .notFound(let message), .unknown(let message):
-            return message
+            return L10n.tr(message)
         }
     }
 }

@@ -34,7 +34,7 @@ final class TimetableManagementController: UIViewController {
         self.onEditTimetable = onEditTimetable
         self.onRepositoryChanged = onRepositoryChanged
         super.init(nibName: nil, bundle: nil)
-        title = "课表管理"
+        title = L10n.tr("Timetable management")
     }
 
     @available(*, unavailable)
@@ -49,7 +49,7 @@ final class TimetableManagementController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        navigationItem.title = "课表管理"
+        navigationItem.title = L10n.tr("Timetable management")
         navigationItem.largeTitleDisplayMode = .never
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             title: nil,
@@ -134,20 +134,20 @@ final class TimetableManagementController: UIViewController {
         var objects: [ConfigurableObject] = []
 
         if isLoading && !hasLoadedOnce {
-            objects.append(loadingObject(text: "正在读取课表…"))
+            objects.append(loadingObject(text: L10n.tr("Reading class schedule...")))
         } else if let loadError, timetables.isEmpty {
             objects.append(errorObject(error: loadError))
         } else {
 
             if timetables.isEmpty {
-                objects.append(infoObject(text: "还没有课表，点右上角 + 来新建或导入。"))
+                objects.append(infoObject(text: L10n.tr("There is no class schedule yet, click + in the upper right corner to create a new one or import it.")))
             } else {
                 objects.append(contentsOf: timetables.map(makeTimetableObject))
             }
         }
 
         return ConfigurableManifest(
-            title: "课表管理",
+            title: L10n.tr("Timetable management"),
             list: objects,
             footer: footerText
         )
@@ -156,13 +156,13 @@ final class TimetableManagementController: UIViewController {
     private func makeAddMenu() -> UIMenu {
         UIMenu(children: [
             UIAction(
-                title: "教务导入",
+                title: L10n.tr("Academic Affairs Import"),
                 image: UIImage(systemName: "square.and.arrow.down")
             ) { [weak self] _ in
                 self?.onImportTap()
             },
             UIAction(
-                title: "新建课表",
+                title: L10n.tr("Create a new class schedule"),
                 image: UIImage(systemName: "square.and.pencil")
             ) { [weak self] _ in
                 self?.onCreateTimetable()
@@ -221,7 +221,7 @@ final class TimetableManagementController: UIViewController {
     private func errorObject(error: Error) -> ConfigurableObject {
         ConfigurableObject(
             icon: "exclamationmark.triangle",
-            title: "读取失败",
+            title: L10n.tr("Read failed"),
             explain: error.localizedDescription,
             ephemeralAnnotation: .action { _ in
                 Task { await self.reloadData() }
@@ -231,19 +231,19 @@ final class TimetableManagementController: UIViewController {
 
     private var footerText: String {
         if isLoading && !hasLoadedOnce {
-            return "正在读取课表数据…"
+            return L10n.tr("Reading class schedule data...")
         }
         if isRefreshing {
-            return "正在刷新课表数据…"
+            return L10n.tr("Refreshing class schedule data...")
         }
         if let refreshError {
             return "刷新失败：\(refreshError.localizedDescription)"
         }
         if loadError != nil && timetables.isEmpty {
-            return "读取课表失败，点按上方条目可重试。"
+            return L10n.tr("Failed to read the class schedule. Click the entry above to try again.")
         }
         if timetables.isEmpty {
-            return "没有课表，点右上角 + 添加一个吧~"
+            return L10n.tr("If there is no class schedule, click + in the upper right corner to add one~")
         }
         return "共 \(timetables.count) 个课表，首页会按日期自动显示当前课表。"
     }

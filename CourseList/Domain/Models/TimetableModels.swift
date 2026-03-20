@@ -7,9 +7,9 @@ enum WeekType: String, Codable, CaseIterable, Sendable {
 
     var title: String {
         switch self {
-        case .all: return "全部"
-        case .odd: return "单周"
-        case .even: return "双周"
+        case .all: return L10n.tr("all")
+        case .odd: return L10n.tr("single week")
+        case .even: return L10n.tr("Fortnightly")
         }
     }
 }

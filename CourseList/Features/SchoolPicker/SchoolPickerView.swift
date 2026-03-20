@@ -31,7 +31,7 @@ final class SchoolPickerController: StackScrollController, UISearchResultsUpdati
         self.onSelect = onSelect
         self.onCreateTimetable = onCreateTimetable
         super.init(nibName: nil, bundle: nil)
-        title = "选择学校"
+        title = L10n.tr("Choose school")
     }
 
     @available(*, unavailable)
@@ -41,12 +41,12 @@ final class SchoolPickerController: StackScrollController, UISearchResultsUpdati
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        navigationItem.title = "选择学校"
+        navigationItem.title = L10n.tr("Choose school")
         navigationItem.largeTitleDisplayMode = .never
 
         let searchController = UISearchController(searchResultsController: nil)
         searchController.searchResultsUpdater = self
-        searchController.searchBar.placeholder = "搜索学校"
+        searchController.searchBar.placeholder = L10n.tr("Search schools")
         searchController.searchBar.autocapitalizationType = .none
         searchController.searchBar.autocorrectionType = .no
         navigationItem.searchController = searchController
@@ -106,7 +106,7 @@ final class SchoolPickerController: StackScrollController, UISearchResultsUpdati
                     label.textAlignment = .center
                     label.font = .preferredFont(forTextStyle: .body)
                     label.textColor = .secondaryLabel
-                    label.text = "没有找到匹配学校"
+                    label.text = L10n.tr("No matching school found")
                     return label
                 })
             )

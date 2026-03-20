@@ -42,7 +42,7 @@ final class CourseEditorCoordinator: NSObject {
 
     static func makeController(repository: TimetableRepositoryProtocol, courseId: String?, timetableId: String?, onFinished: @escaping () -> Void) -> UIViewController {
         let coordinator = CourseEditorCoordinator(repository: repository, state: placeholderState(timetableId: timetableId), onFinished: onFinished)
-        let loadingController = CourseEditorLoadingViewController(title: courseId == nil ? "新建课程" : "编辑课程")
+        let loadingController = CourseEditorLoadingViewController(title: courseId == nil ? L10n.tr("Create new course") : L10n.tr("Edit course"))
         loadingController.navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: coordinator, action: #selector(CourseEditorCoordinator.cancelTapped))
 
         let nav = RetainedNavigationController(rootViewController: loadingController)
@@ -148,11 +148,11 @@ final class CourseEditorCoordinator: NSObject {
     }
 
     var titleText: String {
-        state.courseId == nil ? "新建课程" : "编辑课程"
+        state.courseId == nil ? L10n.tr("Create new course") : L10n.tr("Edit course")
     }
 
     var meetingsSummary: String {
-        "共 \(state.meetings.count) 条"
+        L10n.tr("%d items", state.meetings.count)
     }
 
     var periods: [TimetablePeriod] {
@@ -165,13 +165,13 @@ final class CourseEditorCoordinator: NSObject {
     }
 
     func meetingTitle(at index: Int) -> String {
-        "第 \(index + 1) 条"
+        L10n.tr("Article %d", index + 1)
     }
 
     func description(for meeting: CourseMeetingInput) -> String {
         var parts = [weekdayTitle(meeting.weekday)]
-        parts.append("\(meeting.startWeek)-\(meeting.endWeek) 周")
-        parts.append("第 \(meeting.startPeriod)-\(meeting.endPeriod) 节")
+        parts.append(L10n.tr("%d-%d weeks", meeting.startWeek, meeting.endWeek))
+        parts.append(L10n.tr("Section %d-%d", meeting.startPeriod, meeting.endPeriod))
         parts.append(meeting.weekType.title)
 
         let timeText = buildPeriodTimeLabel(state.periods, startPeriod: meeting.startPeriod, endPeriod: meeting.endPeriod)
@@ -204,8 +204,8 @@ final class CourseEditorCoordinator: NSObject {
             message: message,
             placeholder: placeholder,
             text: state[keyPath: keyPath],
-            cancelButtonText: "取消",
-            doneButtonText: "确定"
+            cancelButtonText: L10n.tr("Cancel"),
+            doneButtonText: L10n.tr("Sure")
         ) { [weak self] output in
             guard let self else { return }
             state[keyPath: keyPath] = output
@@ -218,8 +218,8 @@ final class CourseEditorCoordinator: NSObject {
         guard let meeting = meeting(at: index) else { return }
         let options = (1 ... 7).map { weekdayTitle($0) }
         let picker = CourseEditorAlertOptionPickerViewController(
-            title: "编辑星期",
-            message: "选择这条时间所在的星期。",
+            title: L10n.tr("Editor's Week"),
+            message: L10n.tr("Select the week this time falls on."),
             options: options,
             selectedIndex: max(0, min(meeting.weekday - 1, options.count - 1))
         ) { [weak self] selectedIndex in
@@ -233,11 +233,11 @@ final class CourseEditorCoordinator: NSObject {
 
     func presentMeetingWeekEditor(at index: Int, from view: UIView, editingStart: Bool, onChanged: (() -> Void)? = nil) {
         guard let meeting = meeting(at: index) else { return }
-        let options = Self.weekRange.map { "\($0) 周" }
+        let options = Self.weekRange.map { L10n.tr("Week %d", $0) }
         let currentValue = editingStart ? meeting.startWeek : meeting.endWeek
         let picker = CourseEditorAlertOptionPickerViewController(
-            title: editingStart ? "编辑开始周" : "编辑结束周",
-            message: "上下滑动选择周次。",
+            title: editingStart ? L10n.tr("Editing start week") : L10n.tr("Edit end week"),
+            message: L10n.tr("Swipe up or down to select a week."),
             options: options,
             selectedIndex: max(0, min(currentValue - 1, options.count - 1))
         ) { [weak self] selectedIndex in
@@ -259,11 +259,11 @@ final class CourseEditorCoordinator: NSObject {
     func presentMeetingPeriodEditor(at index: Int, from view: UIView, editingStart: Bool, onChanged: (() -> Void)? = nil) {
         guard let meeting = meeting(at: index) else { return }
         let periodRange = availablePeriodRange
-        let options = periodRange.map { "第 \($0) 节" }
+        let options = periodRange.map { L10n.tr("Period %d", $0) }
         let currentValue = editingStart ? meeting.startPeriod : meeting.endPeriod
         let picker = CourseEditorAlertOptionPickerViewController(
-            title: editingStart ? "编辑开始节" : "编辑结束节",
-            message: state.periods.isEmpty ? "当前课表还没有节次配置，先用默认值占位。" : "上下滑动选择节次。",
+            title: editingStart ? L10n.tr("Edit start section") : L10n.tr("Edit end section"),
+            message: state.periods.isEmpty ? L10n.tr("There is no section configuration in the current class schedule, so use the default value first.") : L10n.tr("Swipe up or down to select a section."),
             options: options,
             selectedIndex: max(0, min(currentValue - 1, options.count - 1))
         ) { [weak self] selectedIndex in
@@ -286,8 +286,8 @@ final class CourseEditorCoordinator: NSObject {
         guard let meeting = meeting(at: index) else { return }
         let options = WeekType.allCases.map(\.title)
         let picker = CourseEditorAlertOptionPickerViewController(
-            title: "编辑单双周",
-            message: "选择这条时间的生效周类型。",
+            title: L10n.tr("Edit odd and fortnightly"),
+            message: L10n.tr("Select the effective week type for this time."),
             options: options,
             selectedIndex: max(0, WeekType.allCases.firstIndex(of: meeting.weekType) ?? 0)
         ) { [weak self] selectedIndex in
@@ -302,12 +302,12 @@ final class CourseEditorCoordinator: NSObject {
     func presentMeetingLocationEditor(at index: Int, from view: UIView, onChanged: (() -> Void)? = nil) {
         guard let meeting = meeting(at: index) else { return }
         let input = AlertInputViewController(
-            title: "编辑本次地点",
+            title: L10n.tr("Edit this location"),
             message: "",
-            placeholder: "逸夫教学楼",
+            placeholder: L10n.tr("Shaw Teaching Building"),
             text: meeting.location ?? "",
-            cancelButtonText: "取消",
-            doneButtonText: "确定"
+            cancelButtonText: L10n.tr("Cancel"),
+            doneButtonText: L10n.tr("Sure")
         ) { [weak self] output in
             self?.updateMeeting(at: index) { current in
                 current.location = normalizeOptionalText(output)
@@ -376,9 +376,9 @@ final class CourseEditorCoordinator: NSObject {
     }
 
     private func presentConflictDialog(warnings: [CourseConflictWarning], input: SaveCourseInput) {
-        let alert = UIAlertController(title: "发现时间冲突", message: warnings.map { $0.message }.joined(separator: "\n"), preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
-        alert.addAction(UIAlertAction(title: "继续保存", style: .default) { _ in
+        let alert = UIAlertController(title: L10n.tr("Time conflict found"), message: warnings.map { $0.message }.joined(separator: "\n"), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: L10n.tr("Cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.tr("Continue to save"), style: .default) { _ in
             Task {
                 do {
                     _ = try await self.repository.saveCourse(input: input)
@@ -402,8 +402,8 @@ final class CourseEditorCoordinator: NSObject {
     }
 
     private func presentError(_ error: Error) {
-        let alert = UIAlertController(title: "操作失败", message: error.localizedDescription, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "确定", style: .default))
+        let alert = UIAlertController(title: L10n.tr("Operation failed"), message: error.localizedDescription, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: L10n.tr("Sure"), style: .default))
         rootController?.present(alert, animated: true)
     }
 
@@ -452,7 +452,7 @@ private final class CourseEditorController: CourseEditorReloadableStackScrollCon
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: coordinator, action: #selector(CourseEditorCoordinator.cancelTapped))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "保存", style: .done, target: coordinator, action: #selector(CourseEditorCoordinator.saveTapped))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: L10n.tr("save"), style: .done, target: coordinator, action: #selector(CourseEditorCoordinator.saveTapped))
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -463,91 +463,91 @@ private final class CourseEditorController: CourseEditorReloadableStackScrollCon
     override func buildContent() {
         appendEditableField(
             icon: "book",
-            title: "课程名称",
+            title: L10n.tr("Course name"),
             description: nil,
             value: coordinator.state.name,
-            placeholder: "高等数学"
+            placeholder: L10n.tr("Advanced Mathematics")
         ) { [weak coordinator] view in
             coordinator?.presentEditor(
                 for: \CourseEditorCoordinator.State.name,
                 from: view,
-                title: "编辑课程名称",
-                message: "课程的显示名称。",
-                placeholder: "高等数学"
+                title: L10n.tr("Edit course name"),
+                message: L10n.tr("The display name of the course."),
+                placeholder: L10n.tr("Advanced Mathematics")
             ) { output in
-                view.configure(value: output.isEmpty ? "未设置" : output)
+                view.configure(value: output.isEmpty ? L10n.tr("not set") : output)
             }
         }
 
         appendEditableField(
             icon: "person",
-            title: "教师",
+            title: L10n.tr("teacher"),
             description: nil,
             value: coordinator.state.teacher,
-            placeholder: "李华"
+            placeholder: L10n.tr("Li Hua")
         ) { [weak coordinator] view in
             coordinator?.presentEditor(
                 for: \CourseEditorCoordinator.State.teacher,
                 from: view,
-                title: "编辑教师",
+                title: L10n.tr("Edit Teacher"),
                 message: "",
-                placeholder: "李华"
+                placeholder: L10n.tr("Li Hua")
             ) { output in
-                view.configure(value: output.isEmpty ? "未设置" : output)
+                view.configure(value: output.isEmpty ? L10n.tr("not set") : output)
             }
         }
 
         appendEditableField(
             icon: "mappin.and.ellipse",
-            title: "地点",
+            title: L10n.tr("Place"),
             description: nil,
             value: coordinator.state.location,
-            placeholder: "逸夫教学楼"
+            placeholder: L10n.tr("Shaw Teaching Building")
         ) { [weak coordinator] view in
             coordinator?.presentEditor(
                 for: \CourseEditorCoordinator.State.location,
                 from: view,
-                title: "编辑地点",
+                title: L10n.tr("Edit location"),
                 message: ""                                                                                                                                           ,
-                placeholder: "逸夫教学楼"
+                placeholder: L10n.tr("Shaw Teaching Building")
             ) { output in
-                view.configure(value: output.isEmpty ? "未设置" : output)
+                view.configure(value: output.isEmpty ? L10n.tr("not set") : output)
             }
         }
 
         appendEditableField(
             icon: "note.text",
-            title: "备注",
+            title: L10n.tr("Remark"),
             description: nil,
             value: coordinator.state.note,
-            placeholder: "老师要手写签到，快去"
+            placeholder: L10n.tr("The teacher wants to sign in by hand. Go quickly.")
         ) { [weak coordinator] view in
             coordinator?.presentEditor(
                 for: \CourseEditorCoordinator.State.note,
                 from: view,
-                title: "编辑备注",
+                title: L10n.tr("Editor's Notes"),
                 message: "",
-                placeholder: "老师要手写签到，快去"
+                placeholder: L10n.tr("The teacher wants to sign in by hand. Go quickly.")
             ) { output in
-                view.configure(value: output.isEmpty ? "未设置" : output)
+                view.configure(value: output.isEmpty ? L10n.tr("not set") : output)
             }
         }
 
         appendPage(
             icon: "clock",
-            title: "上课时间",
+            title: L10n.tr("Class time"),
             description: coordinator.meetingsSummary
         ) { [weak coordinator] in
             coordinator?.makeMeetingsController()
         }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionFooterView().with(footer: "保存时会进行时间冲突检测。")
+            ConfigurableSectionFooterView().with(footer: L10n.tr("Time conflict detection is performed when saving."))
         ) { $0.top /= 2 }
 
         if coordinator.state.courseId != nil {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionHeaderView().with(header: "管理")
+                ConfigurableSectionHeaderView().with(header: L10n.tr("manage"))
             ) { $0.bottom /= 2 }
             stackView.addArrangedSubview(SeparatorView())
 
@@ -555,8 +555,8 @@ private final class CourseEditorController: CourseEditorReloadableStackScrollCon
                 coordinator?.deleteTapped()
             }
             deleteAction.configure(icon: UIImage(systemName: "trash"))
-            deleteAction.configure(title: "删除课程")
-            deleteAction.configure(description: "永久删除这门课程及其全部上课时间。")
+            deleteAction.configure(title: L10n.tr("Delete course"))
+            deleteAction.configure(description: L10n.tr("Permanently delete this course and all class times."))
             deleteAction.titleLabel.textColor = .systemRed
             deleteAction.iconView.tintColor = .systemRed
             deleteAction.descriptionLabel.textColor = .systemRed
@@ -573,7 +573,7 @@ private final class CourseEditorController: CourseEditorReloadableStackScrollCon
         view.configure(icon: UIImage(systemName: icon))
         view.configure(title: title)
         view.configure(description: description ?? "")
-        view.configure(value: value.isEmpty ? "未设置" : value)
+        view.configure(value: value.isEmpty ? L10n.tr("not set") : value)
         view.setTapBlock(tap)
         stackView.addArrangedSubviewWithMargin(view)
         stackView.addArrangedSubview(SeparatorView())
@@ -595,7 +595,7 @@ private final class CourseMeetingsController: CourseEditorReloadableStackScrollC
     init(coordinator: CourseEditorCoordinator) {
         self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
-        title = "上课时间"
+        title = L10n.tr("Class time")
     }
 
     @available(*, unavailable)
@@ -620,7 +620,7 @@ private final class CourseMeetingsController: CourseEditorReloadableStackScrollC
 
     override func buildContent() {
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "时间")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("time"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
@@ -638,11 +638,11 @@ private final class CourseMeetingsController: CourseEditorReloadableStackScrollC
 
         if coordinator.state.meetings.isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "还没有上课时间，点击右上方“添加”开始创建。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("There is no class time yet, click \"Add\" on the upper right to start creating."))
             ) { $0.top /= 2 }
         } else if coordinator.periods.isEmpty {
             stackView.addArrangedSubviewWithMargin(
-                ConfigurableSectionFooterView().with(footer: "当前课表还没有节次配置，保存课程前请先补充课表节次。")
+                ConfigurableSectionFooterView().with(footer: L10n.tr("The current class schedule does not have sections configured yet. Please add sections to the class schedule before saving the course."))
             ) { $0.top /= 2 }
         }
 
@@ -684,10 +684,10 @@ private final class CourseMeetingDetailController: CourseEditorReloadableStackSc
 
         appendEditableField(
             icon: "calendar",
-            title: "星期",
+            title: L10n.tr("Week"),
             description: nil,
             value: weekdayTitle(meeting.weekday),
-            placeholder: "周一"
+            placeholder: L10n.tr("on Monday")
         ) { [weak self] view in
             self?.coordinator.presentMeetingWeekdayEditor(at: self?.meetingIndex ?? 0, from: view) {
                 self?.rebuildContent()
@@ -696,10 +696,10 @@ private final class CourseMeetingDetailController: CourseEditorReloadableStackSc
 
         appendEditableField(
             icon: "number.square",
-            title: "开始周",
+            title: L10n.tr("start week"),
             description: nil,
-            value: "\(meeting.startWeek) 周",
-            placeholder: "1 周"
+            value: L10n.tr("Week %d", meeting.startWeek),
+            placeholder: L10n.tr("1 week")
         ) { [weak self] view in
             self?.coordinator.presentMeetingWeekEditor(at: self?.meetingIndex ?? 0, from: view, editingStart: true) {
                 self?.rebuildContent()
@@ -708,10 +708,10 @@ private final class CourseMeetingDetailController: CourseEditorReloadableStackSc
 
         appendEditableField(
             icon: "number.square",
-            title: "结束周",
+            title: L10n.tr("end week"),
             description: nil,
-            value: "\(meeting.endWeek) 周",
-            placeholder: "16 周"
+            value: L10n.tr("Week %d", meeting.endWeek),
+            placeholder: L10n.tr("16 weeks")
         ) { [weak self] view in
             self?.coordinator.presentMeetingWeekEditor(at: self?.meetingIndex ?? 0, from: view, editingStart: false) {
                 self?.rebuildContent()
@@ -720,10 +720,10 @@ private final class CourseMeetingDetailController: CourseEditorReloadableStackSc
 
         appendEditableField(
             icon: "clock.badge",
-            title: "开始节",
+            title: L10n.tr("start section"),
             description: nil,
-            value: "第 \(meeting.startPeriod) 节",
-            placeholder: "第 1 节"
+            value: L10n.tr("Period %d", meeting.startPeriod),
+            placeholder: L10n.tr("Section 1")
         ) { [weak self] view in
             self?.coordinator.presentMeetingPeriodEditor(at: self?.meetingIndex ?? 0, from: view, editingStart: true) {
                 self?.rebuildContent()
@@ -732,10 +732,10 @@ private final class CourseMeetingDetailController: CourseEditorReloadableStackSc
 
         appendEditableField(
             icon: "clock.badge",
-            title: "结束节",
+            title: L10n.tr("end section"),
             description: nil,
-            value: "第 \(meeting.endPeriod) 节",
-            placeholder: "第 2 节"
+            value: L10n.tr("Period %d", meeting.endPeriod),
+            placeholder: L10n.tr("Section 2")
         ) { [weak self] view in
             self?.coordinator.presentMeetingPeriodEditor(at: self?.meetingIndex ?? 0, from: view, editingStart: false) {
                 self?.rebuildContent()
@@ -744,10 +744,10 @@ private final class CourseMeetingDetailController: CourseEditorReloadableStackSc
 
         appendEditableField(
             icon: "repeat",
-            title: "单双周",
+            title: L10n.tr("Odd and even weeks"),
             description: nil,
             value: meeting.weekType.title,
-            placeholder: "全部"
+            placeholder: L10n.tr("all")
         ) { [weak self] view in
             self?.coordinator.presentMeetingWeekTypeEditor(at: self?.meetingIndex ?? 0, from: view) {
                 self?.rebuildContent()
@@ -756,10 +756,10 @@ private final class CourseMeetingDetailController: CourseEditorReloadableStackSc
 
         appendEditableField(
             icon: "mappin.and.ellipse",
-            title: "本次地点",
+            title: L10n.tr("This time location"),
             description: nil,
-            value: normalizeOptionalText(meeting.location) ?? "未设置",
-            placeholder: "逸夫教学楼"
+            value: normalizeOptionalText(meeting.location) ?? L10n.tr("not set"),
+            placeholder: L10n.tr("Shaw Teaching Building")
         ) { [weak self] view in
             self?.coordinator.presentMeetingLocationEditor(at: self?.meetingIndex ?? 0, from: view) {
                 self?.rebuildContent()
@@ -768,11 +768,11 @@ private final class CourseMeetingDetailController: CourseEditorReloadableStackSc
 
         let timeText = buildPeriodTimeLabel(coordinator.periods, startPeriod: meeting.startPeriod, endPeriod: meeting.endPeriod)
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionFooterView().with(footer: timeText.isEmpty ? "当前还没有可对应的节次时间。" : "对应时间：\(timeText)")
+            ConfigurableSectionFooterView().with(footer: timeText.isEmpty ? L10n.tr("There is currently no corresponding section time.") : "对应时间：\(timeText)")
         ) { $0.top /= 2 }
 
         stackView.addArrangedSubviewWithMargin(
-            ConfigurableSectionHeaderView().with(header: "管理")
+            ConfigurableSectionHeaderView().with(header: L10n.tr("manage"))
         ) { $0.bottom /= 2 }
         stackView.addArrangedSubview(SeparatorView())
 
@@ -780,8 +780,8 @@ private final class CourseMeetingDetailController: CourseEditorReloadableStackSc
             self?.deleteMeeting()
         }
         deleteAction.configure(icon: UIImage(systemName: "trash"))
-        deleteAction.configure(title: "删除本条")
-        deleteAction.configure(description: "删除这条上课时间。")
+        deleteAction.configure(title: L10n.tr("Delete this article"))
+        deleteAction.configure(description: L10n.tr("Delete this class time."))
         deleteAction.titleLabel.textColor = .systemRed
         deleteAction.iconView.tintColor = .systemRed
         deleteAction.descriptionLabel.textColor = .systemRed
@@ -862,8 +862,8 @@ private final class CourseEditorAlertOptionPickerViewController: AlertViewContro
         message: String = "",
         options: [String],
         selectedIndex: Int,
-        cancelButtonText: String = "取消",
-        doneButtonText: String = "确定",
+        cancelButtonText: String = L10n.tr("Cancel"),
+        doneButtonText: String = L10n.tr("Sure"),
         onConfirm: @escaping (Int) -> Void
     ) {
         var controller: CourseEditorAlertOptionPickerContentController!
@@ -939,7 +939,7 @@ private final class CourseEditorLoadingViewController: UIViewController {
 
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "正在加载…"
+        label.text = L10n.tr("Loading…")
         label.font = .preferredFont(forTextStyle: .body)
         label.textColor = .secondaryLabel
 
@@ -959,13 +959,13 @@ private final class CourseEditorLoadingViewController: UIViewController {
 
 private func weekdayTitle(_ weekday: Int) -> String {
     switch weekday {
-    case 1: return "周一"
-    case 2: return "周二"
-    case 3: return "周三"
-    case 4: return "周四"
-    case 5: return "周五"
-    case 6: return "周六"
-    case 7: return "周日"
-    default: return "周一"
+    case 1: return L10n.tr("on Monday")
+    case 2: return L10n.tr("Tuesday")
+    case 3: return L10n.tr("Wednesday")
+    case 4: return L10n.tr("Thursday")
+    case 5: return L10n.tr("Friday")
+    case 6: return L10n.tr("Saturday")
+    case 7: return L10n.tr("Sunday")
+    default: return L10n.tr("on Monday")
     }
 }

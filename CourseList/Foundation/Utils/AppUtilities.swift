@@ -36,8 +36,8 @@ enum TimetableWeekStart: Int, CaseIterable {
 
     var label: String {
         switch self {
-        case .sunday: "周天开始"
-        case .monday: "周一开始"
+        case .sunday: L10n.tr("Starts on Sunday")
+        case .monday: L10n.tr("starts on monday")
         }
     }
 }
@@ -224,7 +224,7 @@ final class CourseNotificationService {
                         let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDateComponents, repeats: false)
 
                         let content = UNMutableNotificationContent()
-                        content.title = "\(course.name) 即将开始"
+                        content.title = L10n.tr("%@ About to start", course.name)
                         content.body = buildReminderBody(timetable: timetable, course: course, meeting: meeting)
                         content.sound = .default
 
@@ -267,9 +267,9 @@ final class CourseNotificationService {
     private func buildReminderBody(timetable: Timetable, course: CourseWithMeetings, meeting: CourseMeeting) -> String {
         let periodText: String
         if meeting.startPeriod == meeting.endPeriod {
-            periodText = "第\(meeting.startPeriod)节"
+            periodText = L10n.tr("Section %d", meeting.startPeriod)
         } else {
-            periodText = "第\(meeting.startPeriod)-\(meeting.endPeriod)节"
+            periodText = L10n.tr("Section %d-%d", meeting.startPeriod, meeting.endPeriod)
         }
 
         var parts = [
@@ -285,14 +285,14 @@ final class CourseNotificationService {
 
     private func weekdayTitle(_ weekday: Int) -> String {
         switch weekday {
-        case 1: return "周一"
-        case 2: return "周二"
-        case 3: return "周三"
-        case 4: return "周四"
-        case 5: return "周五"
-        case 6: return "周六"
-        case 7: return "周日"
-        default: return "周一"
+        case 1: return L10n.tr("on Monday")
+        case 2: return L10n.tr("Tuesday")
+        case 3: return L10n.tr("Wednesday")
+        case 4: return L10n.tr("Thursday")
+        case 5: return L10n.tr("Friday")
+        case 6: return L10n.tr("Saturday")
+        case 7: return L10n.tr("Sunday")
+        default: return L10n.tr("on Monday")
         }
     }
 
@@ -650,16 +650,16 @@ func buildTimetableSummary(_ timetable: Timetable, on date: Date = Date()) -> St
     let status: String
     switch resolveTimetablePhase(timetable, on: date) {
     case .current:
-        status = "进行中"
+        status = L10n.tr("in progress")
     case .upcoming:
-        status = "未开始"
+        status = L10n.tr("Not started")
     case .past:
-        status = "已结束"
+        status = L10n.tr("ended")
     case .unknown:
-        status = "日期异常"
+        status = L10n.tr("Date anomaly")
     }
 
-    return "\(status) · \(timetable.startDate) 开学 · \(timetable.weeksCount) 周"
+    return L10n.tr("%@ · %@ School starts · %d weeks", status, timetable.startDate, timetable.weeksCount)
 }
 
 private func timetablePhaseRank(_ phase: TimetablePhase) -> Int {
